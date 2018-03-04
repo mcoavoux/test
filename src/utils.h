@@ -26,13 +26,8 @@ using std::ostream;
 //using std::unique_ptr;
 
 
-#ifdef WSTRING
 typedef wstring String;
 typedef wchar_t Char;
-#else
-typedef string String;
-typedef char Char;
-#endif
 
 typedef unsigned int STRCODE;
 
