@@ -34,7 +34,7 @@ typedef unsigned int STRCODE;
 // Functions that handle coding typed string on integers
 namespace enc{
     const int MAX_FIELDS = 40;
-    enum {CAT, TOK, TAG, DEP};  // predefined types
+    enum {TOK, TAG};  // predefined types
     enum {UNKNOWN, UNDEF};      // predefined values
 
     class TypedStrEncoder;
