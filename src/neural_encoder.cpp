@@ -27,10 +27,10 @@ CharBiRnnFeatureExtractor::~CharBiRnnFeatureExtractor(){}
 
 void CharBiRnnFeatureExtractor::precompute_lstm_char(){
     cerr << "Precomputing char-lstm for known words" << endl;
-    vector<shared_ptr<Node>> fake_buffer; // contain the list of tokens in vocabulary
+    vector<STRCODE> fake_buffer; // contain the list of tokens in vocabulary
     for (STRCODE i = 0; i < enc::hodor.size(enc::TOK); i++){
-        const vector<STRCODE> morph{i};
-        fake_buffer = {shared_ptr<Node>(new Leaf(i,i,morph))};
+        //const vector<STRCODE> morph{i};
+        fake_buffer = {i};
 
         build_computation_graph(fake_buffer);
         fprop();
@@ -52,7 +52,7 @@ void CharBiRnnFeatureExtractor::init_encoders(){
 }
 
 
-void CharBiRnnFeatureExtractor::build_computation_graph(vector<shared_ptr<Node>> &buffer){
+void CharBiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer){
 
     input = vector<NodeMatrix>(buffer.size());
     states.resize(input.size());
@@ -63,7 +63,7 @@ void CharBiRnnFeatureExtractor::build_computation_graph(vector<shared_ptr<Node>>
     }
 
     for (int w = 0; w < input.size(); w++){
-        STRCODE tokcode = buffer[w]->get_field(Leaf::FIELD_TOK);
+        STRCODE tokcode = buffer[w];
 
         // If a precomputed vector is available
         if (tokcode < precomputed_embeddings.size()){
@@ -245,7 +245,7 @@ void CharBiRnnFeatureExtractor::reset_gradient_history(){
 BiRnnFeatureExtractor::BiRnnFeatureExtractor():train_time(false), parse_time(false){}
 BiRnnFeatureExtractor::BiRnnFeatureExtractor(NeuralNetParameters *nn_parameters,
                       vector<LookupTable> *lookup)
-    :lu(lookup), params(nn_parameters), aux_start(0), aux_end(0), train_time(false), parse_time(false){
+    :lu(lookup), params(nn_parameters), train_time(false), parse_time(false){
 
     vector<int> input_sizes;
 
@@ -279,28 +279,28 @@ BiRnnFeatureExtractor::BiRnnFeatureExtractor(NeuralNetParameters *nn_parameters,
     }
 
 
-    if (params->rnn.auxiliary_task){
-        aux_start = params->rnn.features;
-        aux_end = params->rnn.auxiliary_task_max_target;
-        auxiliary_layers.resize(aux_end - aux_start);
-        aux_output_sizes.resize(aux_end - aux_start);
-        vector<int> input_sizes{params->rnn.hidden_size, params->rnn.hidden_size};
-        for (int i = aux_start; i < aux_end; i++){
-            int output_size = params->voc_sizes[i+1]; // +1 -> 0 is non terminals
-            aux_output_sizes[i-aux_start] = output_size;
-            auxiliary_layers[i-aux_start] ={
-                //shared_ptr<Layer>(new MultipleLinearLayer(2, input_sizes, AUX_HIDDEN_LAYER_SIZE)),
-                //shared_ptr<Layer>(new ReLU()),
-                //shared_ptr<Layer>(new AffineLayer(AUX_HIDDEN_LAYER_SIZE, output_size)),
-                shared_ptr<Layer>(new MultipleLinearLayer(2, input_sizes, output_size)),
-                shared_ptr<Layer>(new Softmax())
-            };
-            for (int j = 0; j < auxiliary_layers[i-aux_start].size(); j++){
-                auxiliary_layers[i-aux_start][j]->get_params(auxiliary_parameters);
-                //auxiliary_layers[i-aux_start][1]->get_params(auxiliary_parameters);
-            }
-        }
-    }
+//    if (params->rnn.auxiliary_task){
+//        aux_start = params->rnn.features;
+//        aux_end = params->rnn.auxiliary_task_max_target;
+//        auxiliary_layers.resize(aux_end - aux_start);
+//        aux_output_sizes.resize(aux_end - aux_start);
+//        vector<int> input_sizes{params->rnn.hidden_size, params->rnn.hidden_size};
+//        for (int i = aux_start; i < aux_end; i++){
+//            int output_size = params->voc_sizes[i+1]; // +1 -> 0 is non terminals
+//            aux_output_sizes[i-aux_start] = output_size;
+//            auxiliary_layers[i-aux_start] ={
+//                //shared_ptr<Layer>(new MultipleLinearLayer(2, input_sizes, AUX_HIDDEN_LAYER_SIZE)),
+//                //shared_ptr<Layer>(new ReLU()),
+//                //shared_ptr<Layer>(new AffineLayer(AUX_HIDDEN_LAYER_SIZE, output_size)),
+//                shared_ptr<Layer>(new MultipleLinearLayer(2, input_sizes, output_size)),
+//                shared_ptr<Layer>(new Softmax())
+//            };
+//            for (int j = 0; j < auxiliary_layers[i-aux_start].size(); j++){
+//                auxiliary_layers[i-aux_start][j]->get_params(auxiliary_parameters);
+//                //auxiliary_layers[i-aux_start][1]->get_params(auxiliary_parameters);
+//            }
+//        }
+//    }
 }
 
 
@@ -311,7 +311,7 @@ void BiRnnFeatureExtractor::precompute_char_lstm(){
     char_rnn.precompute_lstm_char();
 }
 
-void BiRnnFeatureExtractor::build_computation_graph(vector<shared_ptr<Node>> &buffer, bool aux_task){
+void BiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer, bool aux_task){
 
     if (params->rnn.crnn.crnn > 0){
         char_rnn.build_computation_graph(buffer);
@@ -336,19 +336,19 @@ void BiRnnFeatureExtractor::build_computation_graph(vector<shared_ptr<Node>> &bu
         }
 
         shared_ptr<VecParam> e;
-        for (int f = 0; f < params->rnn.features; f++){
-            STRCODE word_code = buffer[i]->get_field(f);
-            if (train_time && f == 0 && word_code != enc::UNDEF){ // 2% unknown words   --> won't work unless prob depends on frequency
-                assert(word_code != enc::UNKNOWN);
-                double threshold = 0.8375 / (0.8375 + enc::hodor.get_freq(word_code));
-                if (rd::random() < threshold){
-                    word_code = enc::UNKNOWN;
-                }
+        //for (int f = 0; f < params->rnn.features; f++){
+        STRCODE word_code = buffer[i];
+        if (train_time && word_code != enc::UNDEF){ // 2% unknown words   --> won't work unless prob depends on frequency
+            assert(word_code != enc::UNKNOWN);
+            double threshold = 0.8375 / (0.8375 + enc::hodor.get_freq(word_code));
+            if (rd::random() < threshold){
+                word_code = enc::UNKNOWN;
             }
-
-            (*lu)[f+1].get(word_code, e);
-            input[i][f+add_features] = shared_ptr<AbstractNeuralNode>(new LookupNode(*e));
         }
+
+        (*lu)[0].get(word_code, e);
+        input[i][add_features] = shared_ptr<AbstractNeuralNode>(new LookupNode(*e));
+        //}
     }
 
     int aux_depth = aux_task ? 2 : params->rnn.depth;
@@ -499,9 +499,9 @@ double BiRnnFeatureExtractor::gradient_squared_norm(){
     if (params->rnn.crnn.crnn > 0){
         gsn += char_rnn.gradient_squared_norm();
     }
-    for (int i = 0; i < auxiliary_parameters.size(); i++){
-        gsn += auxiliary_parameters[i]->gradient_squared_norm();
-    }
+//    for (int i = 0; i < auxiliary_parameters.size(); i++){
+//        gsn += auxiliary_parameters[i]->gradient_squared_norm();
+//    }
     return gsn;
 }
 
@@ -509,9 +509,9 @@ void BiRnnFeatureExtractor::scale_gradient(double scale){
     for (int i = 0; i < parameters.size(); i++){
         parameters[i]->scale_gradient(scale);
     }
-    for (int i = 0; i < auxiliary_parameters.size(); i++){
-        auxiliary_parameters[i]->scale_gradient(scale);
-    }
+//    for (int i = 0; i < auxiliary_parameters.size(); i++){
+//        auxiliary_parameters[i]->scale_gradient(scale);
+//    }
     char_rnn.scale_gradient(scale);
 }
 
@@ -543,9 +543,9 @@ void BiRnnFeatureExtractor::assign_parameters(BiRnnFeatureExtractor &other){
     for (int i = 0; i < parameters.size(); i++){
         parameters[i]->assign(other.parameters[i]);
     }
-    for (int i = 0; i < auxiliary_parameters.size(); i++){
-        auxiliary_parameters[i]->assign(other.auxiliary_parameters[i]);
-    }
+//    for (int i = 0; i < auxiliary_parameters.size(); i++){
+//        auxiliary_parameters[i]->assign(other.auxiliary_parameters[i]);
+//    }
 }
 
 void BiRnnFeatureExtractor::copy_char_birnn(BiRnnFeatureExtractor &other){
@@ -562,11 +562,11 @@ void BiRnnFeatureExtractor::average_weights(int T){
     if (params->rnn.crnn.crnn > 0){
         char_rnn.average_weights(T);
     }
-    if (params->rnn.auxiliary_task){
-        for (int i = 0; i < auxiliary_parameters.size(); i++){
-            auxiliary_parameters[i]->average(T);
-        }
-    }
+//    if (params->rnn.auxiliary_task){
+//        for (int i = 0; i < auxiliary_parameters.size(); i++){
+//            auxiliary_parameters[i]->average(T);
+//        }
+//    }
 }
 
 void BiRnnFeatureExtractor::get_parameters(vector<shared_ptr<Parameter>> &weights){
@@ -583,9 +583,9 @@ void BiRnnFeatureExtractor::export_model(const string &outdir){
     if (params->rnn.crnn.crnn){
         char_rnn.export_model(outdir);
     }
-    for (int i = 0; i < auxiliary_parameters.size(); i++){
-        auxiliary_parameters[i]->export_model(outdir+"/rnn_aux_parameters" + std::to_string(i));
-    }
+//    for (int i = 0; i < auxiliary_parameters.size(); i++){
+//        auxiliary_parameters[i]->export_model(outdir+"/rnn_aux_parameters" + std::to_string(i));
+//    }
 }
 
 void BiRnnFeatureExtractor::load_parameters(const string &outdir){
@@ -595,11 +595,12 @@ void BiRnnFeatureExtractor::load_parameters(const string &outdir){
     if (params->rnn.crnn.crnn){
         char_rnn.load_parameters(outdir);
     }
-    for (int i = 0; i < auxiliary_parameters.size(); i++){
-        auxiliary_parameters[i]->load(outdir+"/rnn_aux_parameters" + std::to_string(i));
-    }
+//    for (int i = 0; i < auxiliary_parameters.size(); i++){
+//        auxiliary_parameters[i]->load(outdir+"/rnn_aux_parameters" + std::to_string(i));
+//    }
 }
 
+/*
 void BiRnnFeatureExtractor::auxiliary_task_summary(ostream &os){
     os << "Auxiliary tasks summary:" << endl;
     for (int i = 0; i < aux_output_sizes.size(); i++){
@@ -608,7 +609,7 @@ void BiRnnFeatureExtractor::auxiliary_task_summary(ostream &os){
 }
 
 
-void BiRnnFeatureExtractor::add_aux_graph(vector<shared_ptr<Node> > &buffer, bool aux_only=true){
+void BiRnnFeatureExtractor::add_aux_graph(vector<STRCODE> &buffer, vector<vector<int> > &targets, bool aux_only=true){
     build_computation_graph(buffer, aux_only);
     assert(input.size() == buffer.size());
     auxiliary_output_nodes.resize(input.size());
@@ -623,23 +624,6 @@ void BiRnnFeatureExtractor::add_aux_graph(vector<shared_ptr<Node> > &buffer, boo
         for (int j = 0; j < aux_end - aux_start; j++){
 
             auxiliary_output_nodes[i][j].clear();
-            // Use an individual hidden layer for each aux task (--> probably better without this
-//            auxiliary_output_nodes[i][j].push_back(
-//                        shared_ptr<AbstractNeuralNode>(
-//                            new ComplexNode(AUX_HIDDEN_LAYER_SIZE, //aux_output_sizes[j],
-//                                           auxiliary_layers[j][0].get(), input_nodes)));  // size / layer / vector input
-//            auxiliary_output_nodes[i][j].push_back(
-//                        shared_ptr<AbstractNeuralNode>(
-//                            new SimpleNode(AUX_HIDDEN_LAYER_SIZE, //aux_output_sizes[j],
-//                                           auxiliary_layers[j][1].get(), auxiliary_output_nodes[i][j][0])));
-//            auxiliary_output_nodes[i][j].push_back(
-//                        shared_ptr<AbstractNeuralNode>(
-//                            new SimpleNode(aux_output_sizes[j],
-//                                           auxiliary_layers[j][2].get(), auxiliary_output_nodes[i][j][1])));
-//            auxiliary_output_nodes[i][j].push_back(
-//                        shared_ptr<AbstractNeuralNode>(
-//                            new SimpleNode(aux_output_sizes[j],
-//                                           auxiliary_layers[j][3].get(), auxiliary_output_nodes[i][j][2])));
             auxiliary_output_nodes[i][j].push_back(
                         shared_ptr<AbstractNeuralNode>(
                             new ComplexNode(aux_output_sizes[j],
@@ -651,23 +635,25 @@ void BiRnnFeatureExtractor::add_aux_graph(vector<shared_ptr<Node> > &buffer, boo
         }
     }
 
-    aux_targets = vector<vector<int>>(buffer.size());
-    for (int i = 0; i < buffer.size(); i++){
-        aux_targets[i].resize(aux_end - aux_start);
-        for (int j = 0; j < aux_end - aux_start; j++){
-            if (buffer[i]->n_fields() > (j+aux_start)){
-                aux_targets[i][j] = buffer[i]->get_field(j + aux_start);
-                if (aux_targets[i][j] >= aux_output_sizes[j]){
-//                    cerr << (j+aux_start) << endl;
-//                    cerr << "unknown:" << enc::hodor.decode(aux_targets[i][j], j + aux_start + 1) << endl;
-//                    for (int k = 0; k < buffer[i]->n_fields(); k++){
-//                        cerr << enc::hodor.decode(buffer[i]->get_field(k), k+1) << " ";
-//                    }cerr << endl;
-                    aux_targets[i][j] = enc::UNKNOWN;
-                }
-            }
-        }
-    }
+    this->aux_targets = targets;
+
+//    aux_targets = vector<vector<int>>(buffer.size());
+//    for (int i = 0; i < buffer.size(); i++){
+//        aux_targets[i].resize(aux_end - aux_start);
+//        for (int j = 0; j < aux_end - aux_start; j++){
+//            if (buffer[i]->n_fields() > (j+aux_start)){
+//                aux_targets[i][j] = buffer[i]->get_field(j + aux_start);
+//                if (aux_targets[i][j] >= aux_output_sizes[j]){
+////                    cerr << (j+aux_start) << endl;
+////                    cerr << "unknown:" << enc::hodor.decode(aux_targets[i][j], j + aux_start + 1) << endl;
+////                    for (int k = 0; k < buffer[i]->n_fields(); k++){
+////                        cerr << enc::hodor.decode(buffer[i]->get_field(k), k+1) << " ";
+////                    }cerr << endl;
+//                    aux_targets[i][j] = enc::UNKNOWN;
+//                }
+//            }
+//        }
+//    }
 }
 
 void BiRnnFeatureExtractor::fprop_aux(){
@@ -829,6 +815,7 @@ void BiRnnFeatureExtractor::aux_reset_gradient_history(){
     }
     char_rnn.reset_gradient_history();
 }
+*/
 
 void BiRnnFeatureExtractor::set_train_time(bool b){
     train_time = b;

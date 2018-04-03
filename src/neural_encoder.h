@@ -7,6 +7,7 @@
 #include <math.h>
 #include <memory>
 #include <vector>
+#include <iomanip>
 #include "layers.h"
 #include "neural_net_hyperparameters.h"
 
@@ -22,6 +23,23 @@ const double MINUS_INFINITY = - std::numeric_limits<double>::infinity();
 
 typedef vector<vector<shared_ptr<AbstractNeuralNode>>> NodeMatrix;
 
+
+/*
+struct AuxiliaryTaskEvaluator{
+    vector<int> good;
+    float total;
+    float complete_match;
+
+    friend ostream& operator<<(ostream &os, AuxiliaryTaskEvaluator &ev){
+        os << "{";
+        for (int i = 0; i < ev.good.size(); i++){
+            os << " " << i << "="<< std::setprecision(4) << 100.0*(ev.good[i]/ev.total);
+        }
+        os << " cm=" << std::setprecision(4) << 100.0*(ev.complete_match/ev.total) << " }";
+        return os;
+    }
+};
+*/
 
 class CharBiRnnFeatureExtractor{
     vector<shared_ptr<RecurrentLayerWrapper>> layers;// 0: forward, 1: backward, 2: forward, 3:backward, etc...
@@ -51,7 +69,7 @@ public:
     void precompute_lstm_char();
     bool has_precomputed();
     void init_encoders();
-    void build_computation_graph(vector<shared_ptr<Node>> &buffer);
+    void build_computation_graph(vector<STRCODE> &buffer);
     void add_init_node(int depth);
     void fprop();
     void bprop();
@@ -99,6 +117,7 @@ class BiRnnFeatureExtractor{
 
     // Auxiliary task
     //static const int AUX_HIDDEN_LAYER_SIZE = 32;
+    /*
     vector<vector<shared_ptr<Layer>>> auxiliary_layers;
     vector<shared_ptr<Parameter>> auxiliary_parameters;
     vector<int> aux_output_sizes;
@@ -106,6 +125,7 @@ class BiRnnFeatureExtractor{
     vector<NodeMatrix> auxiliary_output_nodes;
     int aux_start;
     int aux_end;
+    */
 
     bool train_time;
 
@@ -119,7 +139,7 @@ public:
 
     void precompute_char_lstm();
 
-    void build_computation_graph(vector<shared_ptr<Node>> &buffer, bool aux_task=false);
+    void build_computation_graph(vector<STRCODE> &buffer, bool aux_task=false);
 
     void add_init_node(int depth);
 
@@ -150,8 +170,9 @@ public:
 
     void load_parameters(const string &outdir);
 
+    /*
     void auxiliary_task_summary(ostream &os);
-    void add_aux_graph(vector<shared_ptr<Node>> &buffer, bool aux_only);
+    void add_aux_graph(vector<STRCODE> &buffer, vector<vector<int>> &targets, bool aux_only);
     void fprop_aux();
     void bprop_aux();
     void update_aux(double lr, double T, double clip, bool clipping, bool gaussian, double gaussian_eta);
@@ -166,6 +187,7 @@ public:
     double full_fprop_aux(vector<shared_ptr<Node>> &buffer);
     //int n_aux_tasks();
     void aux_reset_gradient_history();
+    */
 
     void set_train_time(bool b);
 };
