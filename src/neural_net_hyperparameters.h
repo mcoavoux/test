@@ -27,8 +27,8 @@ struct RnnParameters{
     CharRnnParameters crnn;
     //int char_rnn_feature_extractor;  // make this an int ?
 
-    bool auxiliary_task;
-    int auxiliary_task_max_target;  // predict from features + 1 to auxiliary_task_max
+//    bool auxiliary_task;
+//    int auxiliary_task_max_target;  // predict from features + 1 to auxiliary_task_max
 
     RnnParameters();
 };

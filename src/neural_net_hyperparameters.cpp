@@ -11,10 +11,10 @@ RnnParameters::RnnParameters()
     : cell_type(RecurrentLayerWrapper::LSTM),
       depth(2),
       hidden_size(64),
-      features(2),
+      features(2){}
       //char_rnn_feature_extractor(false),
-      auxiliary_task(false),
-      auxiliary_task_max_target(0){};
+//      auxiliary_task(false),
+//      auxiliary_task_max_target(0){};
 
 
 NeuralNetParameters::NeuralNetParameters():
@@ -49,8 +49,8 @@ void NeuralNetParameters::print(ostream &os){
     os << "char rnn\t" << rnn.crnn.crnn << endl;
     os << "char embedding size\t" << rnn.crnn.dim_char << endl;
     os << "char based embedding size\t" << rnn.crnn.dim_char_based_embeddings << endl;
-    os << "auxiliary task\t" << rnn.auxiliary_task << endl;
-    os << "auxiliary task max idx\t" << rnn.auxiliary_task_max_target << endl;
+//    os << "auxiliary task\t" << rnn.auxiliary_task << endl;
+//    os << "auxiliary task max idx\t" << rnn.auxiliary_task_max_target << endl;
     os << "voc sizes\t";
     for (int &i : voc_sizes){
         os << " " << i;
@@ -133,8 +133,8 @@ void NeuralNetParameters::read_option_file(const string &filename, NeuralNetPara
             case CHAR_BIRNN: p.rnn.crnn.crnn = stoi(tokens[1]);         break;
             case CHAR_EMBEDDING_SIZE: p.rnn.crnn.dim_char = stoi(tokens[1]);      break;
             case CHAR_BASED_EMBEDDING_SIZE: p.rnn.crnn.dim_char_based_embeddings = stoi(tokens[1]); break;
-            case AUX_TASK: p.rnn.auxiliary_task = stoi(tokens[1]);                break;
-            case AUX_TASK_IDX: p.rnn.auxiliary_task_max_target = stoi(tokens[1]); break;
+//            case AUX_TASK: p.rnn.auxiliary_task = stoi(tokens[1]);                break;
+//            case AUX_TASK_IDX: p.rnn.auxiliary_task_max_target = stoi(tokens[1]); break;
             default: assert(false && "Unknown nn option");
             }
         }else{

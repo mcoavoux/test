@@ -244,7 +244,7 @@ void CharBiRnnFeatureExtractor::reset_gradient_history(){
 
 BiRnnFeatureExtractor::BiRnnFeatureExtractor():train_time(false), parse_time(false){}
 BiRnnFeatureExtractor::BiRnnFeatureExtractor(NeuralNetParameters *nn_parameters,
-                      vector<LookupTable> *lookup)
+                      LookupTable *lookup)
     :lu(lookup), params(nn_parameters), train_time(false), parse_time(false){
 
     vector<int> input_sizes;
@@ -270,8 +270,8 @@ BiRnnFeatureExtractor::BiRnnFeatureExtractor(NeuralNetParameters *nn_parameters,
         }
     }
 
-    out_of_bounds = Vec::Zero(params->rnn.hidden_size);
-    out_of_bounds_d = Vec::Zero(params->rnn.hidden_size);
+//    out_of_bounds = Vec::Zero(params->rnn.hidden_size);
+//    out_of_bounds_d = Vec::Zero(params->rnn.hidden_size);
 
     if (params->rnn.crnn.crnn > 0){
         char_rnn = CharBiRnnFeatureExtractor(& params->rnn.crnn);
@@ -346,7 +346,7 @@ void BiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer, boo
             }
         }
 
-        (*lu)[0].get(word_code, e);
+        lu->get(word_code, e);
         input[i][add_features] = shared_ptr<AbstractNeuralNode>(new LookupNode(*e));
         //}
     }
@@ -516,22 +516,38 @@ void BiRnnFeatureExtractor::scale_gradient(double scale){
 }
 
 
-void BiRnnFeatureExtractor::operator()(int i, vector<Vec*> &data, vector<Vec*> &data_grad){
+//void BiRnnFeatureExtractor::operator()(int i, vector<Vec*> &data, vector<Vec*> &data_grad){
+//    if (i >= 0 && i < size()){
+//        int j = params->rnn.depth - 2;
+//        assert((j+2) == states.size());
+//        data.push_back(states[j][i]->v());
+//        data_grad.push_back(states[j][i]->d());
+//        data.push_back(states[j+1][i]->v());
+//        data_grad.push_back(states[j+1][i]->d());
+//    }else{
+//        // TODO: find cleverer way (use start / stop symbols ??)
+//        for (int d = 0; d < 2; d++){
+//            data.push_back(&out_of_bounds);
+//            data_grad.push_back(&out_of_bounds_d);
+//        }
+//    }
+//}
+
+void BiRnnFeatureExtractor::operator()(int i, vector<shared_ptr<AbstractNeuralNode>> &output){
     if (i >= 0 && i < size()){
         int j = params->rnn.depth - 2;
         assert((j+2) == states.size());
-        data.push_back(states[j][i]->v());
-        data_grad.push_back(states[j][i]->d());
-        data.push_back(states[j+1][i]->v());
-        data_grad.push_back(states[j+1][i]->d());
+        output.push_back(states[j][i]);
+        output.push_back(states[j+1][i]);
     }else{
-        // TODO: find cleverer way (use start / stop symbols ??)
-        for (int d = 0; d < 2; d++){
-            data.push_back(&out_of_bounds);
-            data_grad.push_back(&out_of_bounds_d);
-        }
+        assert(false);
+//        for (int d = 0; d < 2; d++){
+//            data.push_back(&out_of_bounds);
+//            data_grad.push_back(&out_of_bounds_d);
+//        }
     }
 }
+
 int BiRnnFeatureExtractor::size(){
     assert( states.size() > 0 );
     assert(input.size() == states[0].size());

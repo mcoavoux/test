@@ -104,14 +104,14 @@ class BiRnnFeatureExtractor{
     NodeMatrix input;
 
     // hyperparameters and lookup tables
-    vector<LookupTable> *lu;
+    LookupTable *lu;
     NeuralNetParameters *params;
 
     // parameters
     vector<shared_ptr<Parameter>> parameters;
 
-    Vec out_of_bounds;
-    Vec out_of_bounds_d;
+//    Vec out_of_bounds;
+//    Vec out_of_bounds_d;
 
     CharBiRnnFeatureExtractor char_rnn;
 
@@ -133,7 +133,7 @@ class BiRnnFeatureExtractor{
 
 public:
     BiRnnFeatureExtractor();
-    BiRnnFeatureExtractor(NeuralNetParameters *nn_parameters, vector<LookupTable> *lookup);
+    BiRnnFeatureExtractor(NeuralNetParameters *nn_parameters, LookupTable *lookup);
 
     ~BiRnnFeatureExtractor();
 
@@ -155,7 +155,8 @@ public:
     double gradient_squared_norm();
     void scale_gradient(double scale);
 
-    void operator()(int i, vector<Vec*> &data, vector<Vec*> &data_grad);
+    //void operator()(int i, vector<Vec*> &data, vector<Vec*> &data_grad);
+    void operator()(int i, vector<shared_ptr<AbstractNeuralNode>> &output);
 
     int size();
 

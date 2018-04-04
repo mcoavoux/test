@@ -13,7 +13,7 @@ clean:
 debug: DEBUG = -g -DDEBUG
 debug: alld
 
-OBJ_FILES=utils.o str_utils.o hash_utils.o  layers.o  logger.o  random_utils.o conll_utils.o neural_encoder.o neural_net_hyperparameters.o
+OBJ_FILES=utils.o str_utils.o hash_utils.o  layers.o  logger.o  random_utils.o conll_utils.o neural_encoder.o neural_net_hyperparameters.o bilstm_tagger.o
 
 FLAGS_GCC=-std=c++17 -O3 -Wall -Wno-sign-compare -Wno-deprecated $(DEBUG) $(WSTR) -I../lib
 
