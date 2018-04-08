@@ -411,7 +411,15 @@ void Tanh::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_de
 
 
 void Sigmoid::fprop(const vector<Vec*> &data, Vec& output){
+    //cout << output << endl;
+    //cout << data.size() << endl;
+    assert(data[0] != NULL);
+//    for (int i = 0; i < data.size(); i++){
+//        cout << *data[i] << endl;
+//    }
+//    cerr << *(data[0]) << endl;
     output = 1.0 / (1.0 + (-(*(data[0]))).array().exp());
+//    cerr << "done" << endl;
 }
 void Sigmoid::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient){
     (gradient[0])->array() += out_derivative.array() * (output.array() * (1.0 - output.array()));
@@ -465,7 +473,7 @@ void SoftmaxFilter::bprop(const vector<Vec*> &data, const Vec& output, const Vec
 
 
 
-LookupTable::LookupTable(){}
+LookupTable::LookupTable():LookupTable(1, 1){}
 LookupTable::~LookupTable(){}
 
 LookupTable::LookupTable(const LookupTable &other){
@@ -646,7 +654,11 @@ void SimpleNode::bprop(){
 ComplexNode::ComplexNode(int size, Layer *layer, vector<shared_ptr<AbstractNeuralNode> > &input)
     : NeuralNode(size),
       layer(layer),
-      input(input){}
+      input(input){
+    for (int i = 0; i < input.size(); i++){
+        assert(input[i].get() != NULL);
+    }
+}
 
 
 void ComplexNode::fprop(){
@@ -874,6 +886,11 @@ LstmNode::LstmNode(int size,
                    vector<shared_ptr<AbstractNeuralNode>> &input,
                    RecurrentLayerWrapper &layers)
                 : ComplexNode(size,nullptr,input){
+
+    for (int i = 0; i < input.size(); i++){
+        assert(input[i].get() != NULL);
+    }
+    assert(predecessor.get() != NULL);
 
     this->pred = std::static_pointer_cast<LstmNode>(predecessor);
 

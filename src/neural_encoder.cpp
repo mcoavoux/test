@@ -311,7 +311,7 @@ void BiRnnFeatureExtractor::precompute_char_lstm(){
     char_rnn.precompute_lstm_char();
 }
 
-void BiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer, bool aux_task){
+void BiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer){
 
     if (params->rnn.crnn.crnn > 0){
         char_rnn.build_computation_graph(buffer);
@@ -331,6 +331,8 @@ void BiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer, boo
             vector<shared_ptr<AbstractNeuralNode>> char_based_embeddings;
             char_rnn(i, char_based_embeddings);
             assert(char_based_embeddings.size() == 2);
+            assert(char_based_embeddings[0].get() != NULL);
+            assert(char_based_embeddings[1].get() != NULL);
             input[i][0] = char_based_embeddings[0];
             input[i][1] = char_based_embeddings[1];
         }
@@ -351,20 +353,20 @@ void BiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer, boo
         //}
     }
 
-    int aux_depth = aux_task ? 2 : params->rnn.depth;
+    int depth = params->rnn.depth;
 
     //states.resize(params->rnn.depth);
-    states.resize(aux_depth);
+    states.resize(depth);
     for (int d = 0; d < states.size(); d++){
         states[d].resize(buffer.size());
     }
 
     init_nodes.clear();
-    for (int i = 0; i < aux_depth; i++){
+    for (int i = 0; i < depth; i++){
         add_init_node(i);
     }
 
-    int depth = 0;
+    depth = 0;
     states[depth][0]=  shared_ptr<AbstractNeuralNode>(get_recurrent_node(init_nodes[depth], input[0], *layers[depth]));
     for (int i = 1; i < buffer.size(); i++){
         states[depth][i]= shared_ptr<AbstractNeuralNode>(get_recurrent_node(states[depth][i-1], input[i], *layers[depth]));
@@ -376,22 +378,20 @@ void BiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer, boo
         states[depth][i] = shared_ptr<AbstractNeuralNode>(get_recurrent_node(states[depth][i+1], input[i], *layers[depth]));
     }
 
-    if (! aux_task){
-        for (depth = 2; depth < params->rnn.depth; depth++){
-            if (depth % 2 == 0){
-                vector<shared_ptr<AbstractNeuralNode>> rnn_in{states[depth-1][0], states[depth-2][0]};
-                states[depth][0] = shared_ptr<AbstractNeuralNode>(get_recurrent_node(init_nodes[depth], rnn_in, *layers[depth]));
-                for (int i = 1; i < buffer.size(); i++){
-                    rnn_in = {states[depth-1][i], states[depth-2][i]};
-                    states[depth][i]= shared_ptr<AbstractNeuralNode>(get_recurrent_node(states[depth][i-1], rnn_in, *layers[depth]));
-                }
-            }else{
-                vector<shared_ptr<AbstractNeuralNode>> rnn_in{states[depth-2].back(), states[depth-3].back()};
-                states[depth].back() = shared_ptr<AbstractNeuralNode>(get_recurrent_node(init_nodes[depth], rnn_in, *layers[depth]));
-                for (int i = buffer.size()-2; i >=0 ; i--){
-                    rnn_in = {states[depth-2][i], states[depth-3][i]};
-                    states[depth][i] = shared_ptr<AbstractNeuralNode>(get_recurrent_node(states[depth][i+1], rnn_in, *layers[depth]));
-                }
+    for (depth = 2; depth < params->rnn.depth; depth++){
+        if (depth % 2 == 0){
+            vector<shared_ptr<AbstractNeuralNode>> rnn_in{states[depth-1][0], states[depth-2][0]};
+            states[depth][0] = shared_ptr<AbstractNeuralNode>(get_recurrent_node(init_nodes[depth], rnn_in, *layers[depth]));
+            for (int i = 1; i < buffer.size(); i++){
+                rnn_in = {states[depth-1][i], states[depth-2][i]};
+                states[depth][i]= shared_ptr<AbstractNeuralNode>(get_recurrent_node(states[depth][i-1], rnn_in, *layers[depth]));
+            }
+        }else{
+            vector<shared_ptr<AbstractNeuralNode>> rnn_in{states[depth-2].back(), states[depth-3].back()};
+            states[depth].back() = shared_ptr<AbstractNeuralNode>(get_recurrent_node(init_nodes[depth], rnn_in, *layers[depth]));
+            for (int i = buffer.size()-2; i >=0 ; i--){
+                rnn_in = {states[depth-2][i], states[depth-3][i]};
+                states[depth][i] = shared_ptr<AbstractNeuralNode>(get_recurrent_node(states[depth][i+1], rnn_in, *layers[depth]));
             }
         }
     }

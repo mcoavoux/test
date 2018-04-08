@@ -45,7 +45,7 @@ struct NeuralNetParameters{
     bool gaussian_noise;
     bool gradient_clipping;
     bool soft_clipping;
-    bool rnn_feature_extractor;
+    //bool rnn_feature_extractor;
 
     vector<string> header;
     vector<int> voc_sizes;

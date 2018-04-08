@@ -139,7 +139,7 @@ public:
 
     void precompute_char_lstm();
 
-    void build_computation_graph(vector<STRCODE> &buffer, bool aux_task=false);
+    void build_computation_graph(vector<STRCODE> &buffer);
 
     void add_init_node(int depth);
 

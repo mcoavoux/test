@@ -3,15 +3,15 @@
 
 
 
-NetTopology::NetTopology():n_hidden_layers(2), size_hidden_layers(16), embedding_size_type{8,8,8,8}{}
+NetTopology::NetTopology():n_hidden_layers(1), size_hidden_layers(16), embedding_size_type{8,8,8,8}{}
 
-CharRnnParameters::CharRnnParameters():dim_char(16), dim_char_based_embeddings(32), crnn(0){}
+CharRnnParameters::CharRnnParameters():dim_char(16), dim_char_based_embeddings(16), crnn(0){}
 
 RnnParameters::RnnParameters()
     : cell_type(RecurrentLayerWrapper::LSTM),
       depth(2),
-      hidden_size(64),
-      features(2){}
+      hidden_size(32),
+      features(1){}
       //char_rnn_feature_extractor(false),
 //      auxiliary_task(false),
 //      auxiliary_task_max_target(0){};
@@ -22,10 +22,9 @@ NeuralNetParameters::NeuralNetParameters():
     decrease_constant(1e-6),
     clip_value(10.0),
     gaussian_noise_eta(0.1),
-    gaussian_noise(false),
-    gradient_clipping(false),
+    gaussian_noise(true),
+    gradient_clipping(true),
     soft_clipping(false),
-    rnn_feature_extractor(false),
     header{"word", "tag"}{}
 
 void NeuralNetParameters::print(ostream &os){
@@ -41,7 +40,7 @@ void NeuralNetParameters::print(ostream &os){
     for (int &i : topology.embedding_size_type){
         os << " " << i;
     } os << endl;
-    os << "bi-rnn\t" << rnn_feature_extractor << endl;
+    //os << "bi-rnn\t" << rnn_feature_extractor << endl;
     os << "cell type\t" << rnn.cell_type << endl;
     os << "rnn depth\t" << rnn.depth << endl;
     os << "rnn state size\t" << rnn.hidden_size << endl;
@@ -125,7 +124,7 @@ void NeuralNetParameters::read_option_file(const string &filename, NeuralNetPara
                 }
                 break;
             }
-            case BI_RNN: p.rnn_feature_extractor = stoi(tokens[1]);     break;
+            //case BI_RNN: p.rnn_feature_extractor = stoi(tokens[1]);     break;
             case RNN_CELL_TYPE: p.rnn.cell_type = stoi(tokens[1]);      break;
             case RNN_DEPTH: p.rnn.depth = stoi(tokens[1]);              break;
             case RNN_STATE_SIZE: p.rnn.hidden_size = stoi(tokens[1]);   break;
