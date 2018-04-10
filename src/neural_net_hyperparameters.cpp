@@ -3,14 +3,14 @@
 
 
 
-NetTopology::NetTopology():n_hidden_layers(1), size_hidden_layers(16), embedding_size_type{8,8,8,8}{}
+NetTopology::NetTopology():n_hidden_layers(0), size_hidden_layers(64), embedding_size_type{32,8,8,8}{}
 
-CharRnnParameters::CharRnnParameters():dim_char(16), dim_char_based_embeddings(16), crnn(0){}
+CharRnnParameters::CharRnnParameters():dim_char(16), dim_char_based_embeddings(32), crnn(0){}
 
 RnnParameters::RnnParameters()
     : cell_type(RecurrentLayerWrapper::LSTM),
       depth(2),
-      hidden_size(32),
+      hidden_size(128),
       features(1){}
       //char_rnn_feature_extractor(false),
 //      auxiliary_task(false),

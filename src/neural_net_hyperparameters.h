@@ -49,6 +49,7 @@ struct NeuralNetParameters{
 
     vector<string> header;
     vector<int> voc_sizes;
+
     NeuralNetParameters();
 
     void print(ostream &os);
