@@ -16,7 +16,7 @@ alld: main
 
 OBJ_FILES=utils.o str_utils.o hash_utils.o  layers.o  logger.o  random_utils.o conll_utils.o neural_encoder.o neural_net_hyperparameters.o bilstm_tagger.o
 
-FLAGS_GCC=-std=c++17 -O3 -Wall -Wno-sign-compare -Wno-deprecated $(DEBUG) -I../lib
+FLAGS_GCC=-std=c++11 -O3 -Wall -Wno-sign-compare -Wno-deprecated $(DEBUG) -I../lib
 
 main: $(OBJ_FILES) main.cpp
 	mkdir -p $(BUILD_DIR)
