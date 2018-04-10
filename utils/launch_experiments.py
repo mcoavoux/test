@@ -152,10 +152,10 @@ if __name__ == "__main__":
     parser.add_argument("--dim-crnn","-C", type=int, nargs="+", default=[16], help="Dimension of char lstm")
     parser.add_argument("--depth-rnn","-D", type=int, nargs="+", default=[4], help="Depth of RNN")
 
-    parser.add_argument("--learning-rate", "-l", type=float, default=[0.02])
-    parser.add_argument("--decrease-constant", "-d", type=float, default=[1e-6])
-    parser.add_argument("--hard-clipping", "-g", type=float, default=[10])
-    parser.add_argument("--gaussian-noise", "-G", type=float, default=[0.01])
+    parser.add_argument("--learning-rate", "-l", type=float, nargs="+", default=[0.02])
+    parser.add_argument("--decrease-constant", "-d", type=float, nargs="+", default=[1e-6])
+    parser.add_argument("--hard-clipping", "-g", type=float, nargs="+", default=[10])
+    parser.add_argument("--gaussian-noise", "-G", type=float, nargs="+", default=[0.01])
     
     args = parser.parse_args()
     
