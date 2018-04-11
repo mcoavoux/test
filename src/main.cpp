@@ -16,13 +16,17 @@ struct EpochSummary{
     float daccuracy;
     float dloss;
 
-    EpochSummary(int e, float tacc, float tloss, float dacc, float dloss):
-        epoch(e), taccuracy(tacc), tloss(tloss), daccuracy(dacc), dloss(dloss){}
+    EpochSummary(int e, float size_t, float tacc, float tloss, float size_d, float dacc, float dloss):
+        epoch(e),
+        taccuracy(tacc/size_t*100),
+        tloss(tloss/size_t),
+        daccuracy(dacc/size_d*100),
+        dloss(dloss/size_d){}
 
     void print(ostream &os){
         os << "\rEpoch " << epoch
-           << " train a=" << taccuracy << " l=" << tloss
-           << " dev a=" << daccuracy << " l=" << dloss
+           << " train a=" << std::setprecision(4) << taccuracy << " l=" << tloss
+           << " dev a=" << std::setprecision(4) << daccuracy << " l=" << dloss
            << endl;
     }
 
@@ -184,6 +188,8 @@ int main(int argc, char *argv[]){
         vector<shared_ptr<BiLstmTagger>> models;
         vector<float> dev_accuracies;
 
+        ofstream log_file(options.output_dir + "/logger");
+
         for (int epoch = 0; epoch < options.epochs; epoch ++){
 
             train.shuffle();
@@ -219,14 +225,19 @@ int main(int argc, char *argv[]){
                 avg_t->eval_one(X, Y, dlosses, daccuracies);
             }
 
-            EpochSummary sum(epoch, taccuracies[0]/ttotal, tlosses[0]/ttotal,
-                    daccuracies[0]/dtotal, dlosses[0]/dtotal);
+            EpochSummary sum(epoch, ttotal, taccuracies[0], tlosses[0],
+                    dtotal, daccuracies[0], dlosses[0]);
 
             sum.print(cout);
+
+            sum.log(log_file);
 
             models.push_back(avg_t);
             dev_accuracies.push_back(daccuracies[0] / dtotal);
         }
+
+        log_file.close();
+
         int argmax = 0;
         for (int i = 0; i < dev_accuracies.size(); i++){
             if (dev_accuracies[i] > dev_accuracies[argmax]){
