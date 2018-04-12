@@ -69,6 +69,7 @@ namespace enc{
     class TypedStrEncoder{
         vector<StrDict> encoders;
         vector<string> header;
+        unordered_map<string, int> header_map;
         Frequencies freqs;
     public:
         TypedStrEncoder();
@@ -82,6 +83,8 @@ namespace enc{
         void export_model(const string &outdir);
         void import_model(const string &outdir);
         void set_header(vector<string> &header);
+        int find_type_id(string & type, bool add);
+        void update_header_map();
         int get_dep_idx();
         void update_wordform_frequencies(unordered_map<String, int> &freqdict);
         double get_freq(STRCODE code);
@@ -89,6 +92,7 @@ namespace enc{
     };
 
     extern TypedStrEncoder hodor;
+    extern TypedStrEncoder morph;
 }
 
 

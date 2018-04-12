@@ -5,6 +5,7 @@
 namespace enc{
 
 TypedStrEncoder hodor;
+TypedStrEncoder morph;
 
 StrDict::StrDict() : size_(0){
 
@@ -154,10 +155,32 @@ void TypedStrEncoder::import_model(const string &outdir){
 #endif
     str::split(buffer, "\t", "", this->header);
     is_h.close();
+    update_header_map();
 }
 
 void TypedStrEncoder::set_header(vector<string> &header){
     this->header = header;
+    update_header_map();
+}
+
+int TypedStrEncoder::find_type_id(string &type, bool add){
+    auto it = header_map.find(type);
+    if (it != header_map.end()){
+        assert(header[it->second] == type);
+        return it->second;
+    }
+    if (add){
+        header.push_back(type);
+        header_map[type] = header.size() -1;
+        return header.size() -1;
+    }
+    return -1;
+}
+
+void TypedStrEncoder::update_header_map(){
+    for (int i = 0; i < header.size(); i++){
+        header_map[header[i]] = i;
+    }
 }
 
 int TypedStrEncoder::get_dep_idx(){

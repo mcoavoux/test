@@ -8,12 +8,13 @@
 //    this->_iform = _iform;
 //}
 
-ConllToken::ConllToken(int position, String _form, int _iform, int _cpos, int _fpos){
+ConllToken::ConllToken(int position, String _form, int _iform, int _cpos, int _fpos, vector<int> morpho){
     this->_position = position;
     this->_form = _form;
     this->_iform = _iform;
     this->_cpos = _cpos;
     this->_fpos = _fpos;
+    this->_morpho = morpho;
 }
 
 int ConllToken::i(){
@@ -40,15 +41,42 @@ void ConllToken::fpos(int new_fpos){
     _fpos = new_fpos;
 }
 
+void ConllToken::print_morphology(ostream &os){
+    if (! has_morpho()){
+        os << "_\t";
+        return;
+    }
+    vector<string> attributes;
+    for (int i = 0; i < _morpho.size(); i++){
+        if (_morpho[i] != enc::UNDEF && _morpho[i] != enc::UNKNOWN){
+            string s = enc::morph.get_header(i) + "=" + enc::morph.decode_to_str(_morpho[i], i);
+            attributes.push_back(s);
+        }
+    }
+    os << attributes[0];
+    for (int i = 1; i < attributes.size(); i++){
+        os << "|" << attributes[i];
+    }
+    os << "\t";
+}
+
+bool ConllToken::has_morpho(){
+    for (int i = 0; i < _morpho.size(); i++){
+        if (_morpho[i] != enc::UNDEF && _morpho[i] != enc::UNKNOWN){
+            return true;
+        }
+    }
+    return false;
+}
 
 ostream & operator<<(ostream &os, ConllToken &ct){
     os << ct.i() << "\t"
        << str::encode(ct._form) << "\t"
        << "_" << "\t"
        << enc::hodor.decode_to_str(ct._cpos, enc::TAG) << "\t"
-       << enc::hodor.decode_to_str(ct._fpos, enc::TAG) << "\t"
-       << "_" << "\t"  // morph
-       << "_" << "\t"  // head
+       << enc::hodor.decode_to_str(ct._fpos, enc::TAG) << "\t";
+    ct.print_morphology(os);
+    os << "_" << "\t"  // head
        << "_" << "\t"  // rel
        << "_" << "\t"  // phead
        << "_" << "\t";  // prel
@@ -137,6 +165,38 @@ ostream & operator<<(ostream &os, ConllTreebank &ct){
     return os;
 }
 
+void parse_morphology(String &s, vector<int> &morph){
+    morph.clear();
+    if (s == L"_"){
+        return;
+    }
+    vector<int> keys;
+    vector<int> values;
+    int max_key = 0;
+
+    vector<String> split_s;
+    str::split(s, "|", "", split_s);
+    for (int i = 0; i < split_s.size(); i++){
+        vector<String> k_v;
+        str::split(split_s[i], "=", "", k_v);
+        assert(k_v.size() == 2);
+        string type_str;
+        str::encode(type_str, k_v[0]);
+        int type_id = enc::morph.find_type_id(type_str, true);
+        int value = enc::morph.code(k_v[1], type_id);
+
+        keys.push_back(type_id);
+        values.push_back(value);
+
+        if (type_id > max_key){
+            max_key = type_id;
+        }
+    }
+    morph = vector<int>(max_key + 1, enc::UNDEF);
+    for (int i = 0; i < keys.size(); i++){
+        morph[keys[i]] = values[i];
+    }
+}
 
 void read_conll_corpus(std::string &filename,
                        ConllTreebank &treebank,
@@ -168,13 +228,16 @@ void read_conll_corpus(std::string &filename,
         }
 
 
-        int id = stoi(split_tokens[0]);
-        String form = split_tokens[1];
+        int id = stoi(split_tokens[ConllU::ID]);
+        String form = split_tokens[ConllU::FORM];
         int iform = enc::hodor.code(form, enc::TOK);
 
-        int cpos = enc::hodor.code(split_tokens[3], enc::TAG);
+        int cpos = enc::hodor.code(split_tokens[ConllU::UPOS], enc::TAG);
 
-        ConllToken tok(id, form, iform, cpos, enc::UNKNOWN);
+        vector<int> morpho;
+        parse_morphology(split_tokens[ConllU::FEATS], morpho);
+
+        ConllToken tok(id, form, iform, cpos, enc::UNKNOWN, morpho);
         tokens.push_back(tok);
     }
     in.close();

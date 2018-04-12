@@ -21,6 +21,8 @@ using std::endl;
 //    }
 //};
 
+namespace ConllU{enum{ID, FORM, LEMMA, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS, MISC};};
+
 class ConllToken{
 
     int _position;
@@ -32,9 +34,11 @@ class ConllToken{
     int head;
     int label;
 
+    vector<int> _morpho;
+
 public:
     //ConllToken(int position, String _form, int _iform);
-    ConllToken(int position, String _form, int _iform, int _cpos, int _fpos);
+    ConllToken(int position, String _form, int _iform, int _cpos, int _fpos, vector<int> morpho);
     int i();
     int form();
     int cpos();
@@ -42,6 +46,9 @@ public:
 
     void cpos(int new_cpos);
     void fpos(int new_fpos);
+
+    void print_morphology(ostream &os);
+    bool has_morpho();
 
     friend ostream & operator<<(ostream &os, ConllToken &ct);
 };
@@ -79,6 +86,8 @@ public:
 
     friend ostream & operator<<(ostream &os, ConllTreebank &ct);
 };
+
+void parse_morphology(String &s, vector<int> &morph);
 
 void read_conll_corpus(std::string &filename,
                        ConllTreebank &treebank,
