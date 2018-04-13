@@ -34,7 +34,7 @@ typedef unsigned int STRCODE;
 // Functions that handle coding typed string on integers
 namespace enc{
     const int MAX_FIELDS = 40;
-    enum {TOK, TAG};  // predefined types
+    enum {TOK, TAG, UPOS, XPOS};  // predefined types
     enum {UNKNOWN, UNDEF};      // predefined values
 
     class TypedStrEncoder;
@@ -80,16 +80,22 @@ namespace enc{
         int size(int type);
         void vocsizes(vector<int> &sizes);
         void reset();
-        void export_model(const string &outdir);
-        void import_model(const string &outdir);
-        void set_header(vector<string> &header);
+        void export_model(const string &outdir, const string prefix);
+        void import_model(const string &outdir, const string prefix);
         int find_type_id(string & type, bool add);
         void update_header_map();
         int get_dep_idx();
         void update_wordform_frequencies(unordered_map<String, int> &freqdict);
         double get_freq(STRCODE code);
         string get_header(int i);
+
+        int size();
+        void ensure_size(int type);
     };
+
+    void export_encoders(string &outdir);
+    void import_encoders(string &outdir);
+
 
     extern TypedStrEncoder hodor;
     extern TypedStrEncoder morph;

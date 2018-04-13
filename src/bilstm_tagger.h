@@ -47,7 +47,7 @@ public:
 
     void train_one(vector<STRCODE> &X, vector<vector<int>> &Y);
     void predict_one(vector<STRCODE> &X, vector<vector<int>> &Y);
-    void eval_one(vector<STRCODE> &X, vector<vector<int>> &Y, vector<float> &losses, vector<int> &accuracies);
+    void eval_one(vector<STRCODE> &X, vector<vector<int>> &Y, vector<float> &losses, vector<float> &accuracies);
     void fprop(vector<STRCODE> &X);
     void get_losses(vector<float> &losses, vector<vector<int> > &targets);
     void get_predictions(vector<vector<int>> &predictions);

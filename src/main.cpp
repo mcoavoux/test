@@ -11,31 +11,70 @@ using namespace std;
 
 struct EpochSummary{
     int epoch;
-    float taccuracy;
-    float tloss;
-    float daccuracy;
-    float dloss;
+    vector<float> taccuracy;
+    vector<float> tloss;
+    vector<float> daccuracy;
+    vector<float> dloss;
 
-    EpochSummary(int e, float size_t, float tacc, float tloss, float size_d, float dacc, float dloss):
+    EpochSummary(int e, float size_t,
+                 vector<float> &tacc,
+                 vector<float> &tloss,
+                 float size_d,
+                 vector<float> dacc,
+                 vector<float> dloss):
         epoch(e),
-        taccuracy(tacc/size_t*100),
-        tloss(tloss/size_t),
-        daccuracy(dacc/size_d*100),
-        dloss(dloss/size_d){}
+        taccuracy(tacc),
+        tloss(tloss),
+        daccuracy(dacc),
+        dloss(dloss){
+        for (int i = 0; i < taccuracy.size(); i++){
+            taccuracy[i] = taccuracy[i] / size_t * 100.0;
+        }
+        for (int i = 0; i < daccuracy.size(); i++){
+            daccuracy[i] = daccuracy[i] / size_d * 100.0;
+        }
+        for (int i = 0; i < tloss.size(); i++){
+            tloss[i] = tloss[i] / size_t;
+        }
+        for (int i = 0; i < dloss.size(); i++){
+            dloss[i] = dloss[i] / size_d;
+        }
+    }
 
     void print(ostream &os){
         os << "\rEpoch " << epoch
-           << " train a=" << std::setprecision(4) << taccuracy << " l=" << tloss
-           << " dev a=" << std::setprecision(4) << daccuracy << " l=" << dloss
-           << endl;
+           << " train a= ";
+        for (int i = 0; i < taccuracy.size(); i++){
+            os << std::setprecision(4) << taccuracy[i] << " ";
+        }
+        os << "l= ";
+        for (int i = 0; i < tloss.size(); i++){
+            os << std::setprecision(4) << tloss[i] << " ";
+        }
+        os << " dev a= ";
+        for (int i = 0; i < daccuracy.size(); i++){
+            os << std::setprecision(4) << daccuracy[i] << " ";
+        }
+        os << "l= ";
+        for (int i = 0; i < dloss.size(); i++){
+            os << std::setprecision(4) << dloss[i] << " ";
+        }
     }
 
     void log(ostream &os){
-        os << epoch
-           << "\t" << taccuracy
-           << "\t" << tloss
-           << "\t" << daccuracy
-           << "\t" << dloss << endl;
+        os << epoch;
+        for (int i = 0; i < taccuracy.size(); i++){
+            os << "\t" << taccuracy[i];
+        }
+        for (int i = 0; i < tloss.size(); i++){
+            os << "\t" << tloss[i];
+        }
+        for (int i = 0; i < daccuracy.size(); i++){
+            os << "\t" << daccuracy[i];
+        }
+        for (int i = 0; i < dloss.size(); i++){
+            os << "\t" << dloss[i];
+        }
     }
 };
 
@@ -110,6 +149,7 @@ void print_help(){
         "  -i     --epochs          [INT]       number of iterations [default=20]" << endl <<
         "  -o     --output          [STRING]    output directory" << endl <<
         "  -p     --hyperparameters [STRING]    hyperparameters of neural net" << endl <<
+        "  -M     --multitask       [STRING]    specify what to predict: xm" << endl <<
         "Testing mode options:" << endl <<
         "  -T     --test           [STRING]    training corpus (conll format)   " << endl <<
         "  -l     --load-model      [STRING]    model directory" << endl << endl;
@@ -119,6 +159,7 @@ int main(int argc, char *argv[]){
     srand(rd::Random::SEED);
 
     Options options;
+    Output output("m");
 
     while(true){
         static struct option long_options[] ={
@@ -130,11 +171,12 @@ int main(int argc, char *argv[]){
         {"epochs", required_argument, 0, 'i'},
         {"output", required_argument, 0, 'o'},
         {"load-model", required_argument, 0, 'l'},
-        {"hyperparameters", required_argument, 0, 'p'},};
+        {"hyperparameters", required_argument, 0, 'p'},
+        {"multitask", required_argument, 0, 'M'}};
 
         int option_index = 0;
 
-        char c = getopt_long (argc, argv, "ht:T:d:i:o:p:m:l:",long_options, &option_index);
+        char c = getopt_long (argc, argv, "ht:T:d:i:o:p:m:l:M:",long_options, &option_index);
 
         if(c==-1){
             break;
@@ -150,6 +192,7 @@ int main(int argc, char *argv[]){
         case 'o': options.output_dir = optarg;    break;
         case 'l': options.output_dir = optarg;    break;
         case 'p': options.hyper_file = optarg;    break;
+        case 'M': output = Output(optarg);        break;
         default:
             cerr << "unknown option: " << optarg << endl;
             print_help();
@@ -167,13 +210,15 @@ int main(int argc, char *argv[]){
         if (! options.check()){
             exit(1);
         }
+
         NeuralNetParameters::read_option_file(options.hyper_file, options.params);
 
         read_conll_corpus(options.train_file, train, true);
         read_conll_corpus(options.dev_file, dev, false);
 
         int voc_size = enc::hodor.size(enc::TOK);
-        vector<int> n_labels{enc::hodor.size(enc::TAG)};
+
+        output.get_output_sizes();
 
         cout << "Hyperparameters" << endl;
         options.params.print(cout);
@@ -183,7 +228,7 @@ int main(int argc, char *argv[]){
         train.shuffle();
         train.subset(train_sample, dev.size());
 
-        BiLstmTagger tagger(voc_size, n_labels, options.params);
+        BiLstmTagger tagger(voc_size, output.n_labels, options.params);
 
         vector<shared_ptr<BiLstmTagger>> models;
         vector<float> dev_accuracies;
@@ -197,7 +242,7 @@ int main(int argc, char *argv[]){
             vector<STRCODE> X;
             vector<vector<int>> Y;
             for (int i = 0; i < train.size(); i++){
-                train[i]->to_training_example(X, Y);
+                train[i]->to_training_example(X, Y, output);
                 tagger.train_one(X, Y);
                 cerr << "\r" << std::setprecision(4) << (i*100.0 / train.size()) << "%";
             }
@@ -206,27 +251,27 @@ int main(int argc, char *argv[]){
             avg_t->average_parameters();
 
             float ttotal = 0;
-            vector<float> tlosses(1);
-            vector<int> taccuracies(1);
+            vector<float> tlosses(output.n_labels.size(), 0.0);
+            vector<float> taccuracies(output.n_labels.size(), 0.0);
 
             for (int i = 0; i < train_sample.size(); i++){
-                train_sample[i]->to_training_example(X, Y);
+                train_sample[i]->to_training_example(X, Y, output);
                 ttotal += X.size();
                 avg_t->eval_one(X, Y, tlosses, taccuracies);
             }
 
             float dtotal = 0;
-            vector<float> dlosses(1);
-            vector<int> daccuracies(1);
+            vector<float> dlosses(output.n_labels.size(), 0.0);
+            vector<float> daccuracies(output.n_labels.size(), 0.0);
 
             for (int i = 0; i < dev.size(); i++){
-                dev[i]->to_training_example(X, Y);
+                dev[i]->to_training_example(X, Y, output);
                 dtotal += X.size();
                 avg_t->eval_one(X, Y, dlosses, daccuracies);
             }
 
-            EpochSummary sum(epoch, ttotal, taccuracies[0], tlosses[0],
-                    dtotal, daccuracies[0], dlosses[0]);
+            EpochSummary sum(epoch, ttotal, taccuracies, tlosses,
+                                    dtotal, daccuracies, dlosses);
 
             sum.print(cout);
 
@@ -246,23 +291,27 @@ int main(int argc, char *argv[]){
         }
         models[argmax]->export_model(options.output_dir);
 
+        output.export_model(options.output_dir);
+
     }else{
         assert(options.mode == Options::TEST);
 
-        enc::hodor.import_model(options.output_dir);
+
+        enc::import_encoders(options.output_dir);
         int voc_size = enc::hodor.size(enc::TOK);
-        vector<int> n_labels{enc::hodor.size(enc::TAG)};
+
+        output.import_model(options.output_dir);
 
         NeuralNetParameters::read_option_file(options.output_dir + "/hyperparameters", options.params);
         cerr << "Hyperparameters" << endl;
         options.params.print(cerr);
         cerr << endl;
 
-        BiLstmTagger tagger(voc_size, n_labels, options.params);
+        output.get_output_sizes();
+        BiLstmTagger tagger(voc_size, output.n_labels, options.params);
         tagger.import_model(options.output_dir);
 
-        string fooout("redux");
-        tagger.export_model(fooout);
+
 
         ConllTreebank test;
         read_conll_corpus(options.test_file, test, false);
@@ -271,9 +320,9 @@ int main(int argc, char *argv[]){
             vector<STRCODE> X;
             vector<vector<int>> gold;
             vector<vector<int>> pred;
-            test[i]->to_training_example(X, gold);
+            test[i]->to_training_example(X, gold, output);
             tagger.predict_one(X, pred);
-            test[i]->assign_tags(pred);
+            test[i]->assign_tags(pred, output);
         }
         cout << test;
     }

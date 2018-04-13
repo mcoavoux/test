@@ -7,6 +7,17 @@ namespace enc{
 TypedStrEncoder hodor;
 TypedStrEncoder morph;
 
+
+void export_encoders(string &outdir){
+    hodor.export_model(outdir, "hodor");
+    morph.export_model(outdir, "morph");
+}
+
+void import_encoders(string &outdir){
+    hodor.import_model(outdir, "hodor");
+    morph.import_model(outdir, "morph");
+}
+
 StrDict::StrDict() : size_(0){
 
     code(L"UNKNOWN");
@@ -65,19 +76,22 @@ double Frequencies::freq(STRCODE code){
 
 
 
-TypedStrEncoder::TypedStrEncoder() : encoders(MAX_FIELDS){
+TypedStrEncoder::TypedStrEncoder(){
 #ifdef DEBUG
     cerr << "Hold the door!" << endl;
 #endif
 }
 
 STRCODE TypedStrEncoder::code(String s, int type){
+    ensure_size(type);
     return encoders[type].code(s);
 }
 STRCODE TypedStrEncoder::code_unknown(String s, int type){
+    ensure_size(type);
     return encoders[type].code_unknown(s);
 }
 String TypedStrEncoder::decode(STRCODE i, int type){
+    ensure_size(type);
     assert(type < encoders.size() && "hodor error: type unknown");
     return encoders[type].decode(i);
 }
@@ -87,6 +101,7 @@ string TypedStrEncoder::decode_to_str(STRCODE i, int type){
 }
 
 int TypedStrEncoder::size(int type){
+    ensure_size(type);
     return encoders[type].size();
 }
 
@@ -99,22 +114,22 @@ void TypedStrEncoder::vocsizes(vector<int> &sizes){
 
 void TypedStrEncoder::reset(){
     cerr << "Warning : string encoder has reset." << endl;
-    encoders = vector<StrDict>(MAX_FIELDS);
+    encoders.clear();
 }
 
-void TypedStrEncoder::export_model(const string &outdir){
-    ofstream os(outdir + "/encoder_id");
+void TypedStrEncoder::export_model(const string &outdir, const string prefix){
+    ofstream os(outdir + "/"+ prefix +"_encoder_id");
     for (int i = 0; i < encoders.size(); i++){
         if (encoders[i].size() > 2){
             os << i << endl;
-            ofstream ost(outdir + "/encoder_t" + std::to_string(i));
+            ofstream ost(outdir + "/"+ prefix + "_encoder_t" + std::to_string(i));
             ost << encoders[i];
             ost.close();
         }
     }
     os.close();
 
-    ofstream os_h(outdir + "/encoder_header");
+    ofstream os_h(outdir + "/"+ prefix + "_encoder_header");
     if (header.size() > 0){
         os_h << header[0];
         for (int i = 1; i < header.size(); i++){
@@ -124,13 +139,13 @@ void TypedStrEncoder::export_model(const string &outdir){
     os_h.close();
 }
 
-void TypedStrEncoder::import_model(const string &outdir){
+void TypedStrEncoder::import_model(const string &outdir, const string prefix){
     reset();
-    ifstream is(outdir + "/encoder_id");
+    ifstream is(outdir + "/"+ prefix + "_encoder_id");
     string buffer;
     while (getline(is, buffer)){
         int i = stoi(buffer);
-        ifstream ist(outdir + "/encoder_t" + std::to_string(i));
+        ifstream ist(outdir + "/"+ prefix + "_encoder_t" + std::to_string(i));
 
         string buf;
         getline(ist,buf);
@@ -147,21 +162,23 @@ void TypedStrEncoder::import_model(const string &outdir){
     }
     is.close();
 
-    ifstream is_h(outdir + "/encoder_header");
+    ifstream is_h(outdir + "/"+ prefix + "_encoder_header");
     getline(is_h, buffer);
 #ifdef DEBUG
     cerr << "Loaded header:" << endl;
     cerr << buffer << endl;
 #endif
     str::split(buffer, "\t", "", this->header);
+    //cerr << this->header.size() << "  "  <<  encoders.size() << endl;
+    assert(this->header.size() == encoders.size());
     is_h.close();
     update_header_map();
 }
 
-void TypedStrEncoder::set_header(vector<string> &header){
-    this->header = header;
-    update_header_map();
-}
+//void TypedStrEncoder::set_header(vector<string> &header){
+//    this->header = header;
+//    update_header_map();
+//}
 
 int TypedStrEncoder::find_type_id(string &type, bool add){
     auto it = header_map.find(type);
@@ -212,6 +229,15 @@ string TypedStrEncoder::get_header(int i){
     return header[i];
 }
 
+int TypedStrEncoder::size(){
+    return encoders.size();
+}
+
+void TypedStrEncoder::ensure_size(int type){
+    while (encoders.size() <= type){
+        encoders.push_back(StrDict());
+    }
+}
 }
 
 

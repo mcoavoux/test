@@ -64,7 +64,7 @@ void BiLstmTagger::predict_one(vector<STRCODE> &X, vector<vector<int>> &Y){
     this->get_predictions(Y);
 }
 
-void BiLstmTagger::eval_one(vector<STRCODE> &X, vector<vector<int>> &Y, vector<float> &losses, vector<int> &accuracies){
+void BiLstmTagger::eval_one(vector<STRCODE> &X, vector<vector<int>> &Y, vector<float> &losses, vector<float> &accuracies){
 
     vector<vector<int>> predictions;
     this->fprop(X);
@@ -151,6 +151,10 @@ void BiLstmTagger::get_predictions(vector<vector<int>> &predictions){
             v->maxCoeff(&argmax);
             predictions[i][t] = argmax;
         }
+//        for (int t = 0; t < output_nodes[i].size(); t++){
+//            cerr << predictions[i][t] << " ";
+//        }
+//        cerr << endl;
     }
 }
 
@@ -205,7 +209,7 @@ void BiLstmTagger::average_parameters(){
 
 void BiLstmTagger::export_model(string &output_dir){
 
-    enc::hodor.export_model(output_dir);
+    enc::export_encoders(output_dir);
 
     lu.export_model(output_dir + "/lu");
     rnn.export_model(output_dir);

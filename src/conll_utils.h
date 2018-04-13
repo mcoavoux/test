@@ -21,7 +21,23 @@ using std::endl;
 //    }
 //};
 
-namespace ConllU{enum{ID, FORM, LEMMA, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS, MISC};};
+namespace ConllU{enum{ID, FORM, LEMMA, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS, MISC};}
+
+struct Output{
+    string code;
+    bool xpos;
+    bool morph;
+    int n_feats;
+    vector<int> n_labels;
+
+    Output(string s);
+    void initialize(string s);
+    void get_output_sizes();
+
+    void export_model(string output_dir);
+    void import_model(string output_dir);
+};
+
 
 class ConllToken{
 
@@ -49,6 +65,8 @@ public:
 
     void print_morphology(ostream &os);
     bool has_morpho();
+    int get_morpho(int type);
+    void set_morpho(int type, int val);
 
     friend ostream & operator<<(ostream &os, ConllToken &ct);
 };
@@ -61,16 +79,16 @@ public:
     ConllToken* operator[](int i);
     int size();
 
-    void to_training_example(vector<STRCODE> &X, vector<vector<int>> &Y);
+    void to_training_example(vector<STRCODE> &X, vector<vector<int>> &Y, Output &output);
 
-    void assign_tags(vector<vector<int>> &Y);
+    void assign_tags(vector<vector<int>> &Y, Output &output);
 
     friend ostream & operator<<(ostream &os, ConllTree &ct);
 };
 
 class ConllTreebank{
     vector<ConllTree> trees;
-    vector<int> voc_sizes;
+    //vector<int> voc_sizes;
     unordered_map<int, int> frequencies;
 public:
     ConllTreebank();
@@ -87,7 +105,7 @@ public:
     friend ostream & operator<<(ostream &os, ConllTreebank &ct);
 };
 
-void parse_morphology(String &s, vector<int> &morph);
+void parse_morphology(String &s, vector<int> &morph, bool train);
 
 void read_conll_corpus(std::string &filename,
                        ConllTreebank &treebank,

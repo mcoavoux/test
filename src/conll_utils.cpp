@@ -2,6 +2,48 @@
 
 #include "conll_utils.h"
 
+
+Output::Output(string s):code(s), xpos(false), morph(false), n_feats(0){
+    initialize(s);
+}
+
+void Output::initialize(string s){
+    if (s.find('x') != string::npos){
+        xpos = true;
+    }
+    if (s.find('m' != string::npos)){
+        morph = true;
+    }
+}
+
+void Output::get_output_sizes(){
+    n_labels.clear();
+    n_labels.push_back(enc::hodor.size(enc::UPOS));
+    if (this->xpos){
+        n_labels.push_back(enc::hodor.size(enc::XPOS));
+    }
+    if (this->morph){
+        n_feats = enc::morph.size();
+        for (int i = 0; i < enc::morph.size(); i++){
+            n_labels.push_back(enc::morph.size(i));
+        }
+    }
+}
+
+void Output::export_model(string output_dir){
+    ofstream out(output_dir + "/output_code");
+    out << code << endl;
+    out.close();
+}
+
+void Output::import_model(string output_dir){
+    ifstream in(output_dir + "/output_code");
+    in >> code;
+    initialize(code);
+    in.close();
+}
+
+
 //ConllToken::ConllToken(int position, String _form, int _iform){
 //    this->_position = position;
 //    this->_form = _form;
@@ -62,6 +104,7 @@ void ConllToken::print_morphology(ostream &os){
 
 bool ConllToken::has_morpho(){
     for (int i = 0; i < _morpho.size(); i++){
+        //cerr << "mm" << _morpho[i] << endl;
         if (_morpho[i] != enc::UNDEF && _morpho[i] != enc::UNKNOWN){
             return true;
         }
@@ -69,12 +112,26 @@ bool ConllToken::has_morpho(){
     return false;
 }
 
+int ConllToken::get_morpho(int type){
+    if (_morpho.size() <= type){
+        return enc::UNDEF;
+    }
+    return _morpho[type];
+}
+
+void ConllToken::set_morpho(int type, int val){
+    while (_morpho.size() <= type){
+        _morpho.push_back(enc::UNDEF);
+    }
+    _morpho[type] = val;
+}
+
 ostream & operator<<(ostream &os, ConllToken &ct){
     os << ct.i() << "\t"
        << str::encode(ct._form) << "\t"
        << "_" << "\t"
-       << enc::hodor.decode_to_str(ct._cpos, enc::TAG) << "\t"
-       << enc::hodor.decode_to_str(ct._fpos, enc::TAG) << "\t";
+       << enc::hodor.decode_to_str(ct._cpos, enc::UPOS) << "\t"
+       << enc::hodor.decode_to_str(ct._fpos, enc::XPOS) << "\t";
     ct.print_morphology(os);
     os << "_" << "\t"  // head
        << "_" << "\t"  // rel
@@ -96,22 +153,44 @@ int ConllTree::size(){
     return tokens.size();
 }
 
-void ConllTree::to_training_example(vector<STRCODE> &X, vector<vector<int>> &Y){
+void ConllTree::to_training_example(vector<STRCODE> &X, vector<vector<int>> &Y, Output &output){
     X.clear();
     Y.clear();
+
     for (ConllToken &tok: tokens){
         X.push_back(tok.form());
         vector<int> label{tok.cpos()};
+        if (output.xpos){
+            label.push_back(tok.fpos());
+        }
+        if (output.morph){
+            for (int i = 0; i < output.n_feats; i++){
+                label.push_back(tok.get_morpho(i));
+            }
+        }
         Y.push_back(label);
     }
     assert(X.size() > 0);
     assert(X.size() == Y.size());
 }
 
-void ConllTree::assign_tags(vector<vector<int>> &Y){
+void ConllTree::assign_tags(vector<vector<int>> &Y, Output &output){
     for (int i = 0; i < tokens.size(); i++){
-        tokens[i].cpos(Y[i][0]);
-        tokens[i].fpos(Y[i][0]);
+        int k = 0;
+        tokens[i].cpos(Y[i][k++]);
+        if (output.xpos){
+            tokens[i].fpos(Y[i][k++]);
+        }
+        if (output.morph){
+//            cerr << "Y size " << Y[i].size() << endl;
+//            cerr << "k " << k << endl;
+//            cerr << enc::morph.size() << endl;
+            for (int j = 0; j < enc::morph.size(); j++){
+                //cerr << "Y size " << Y[i].size() << "  " << k << endl;
+                assert(k < Y[i].size());
+                tokens[i].set_morpho(j, Y[i][k++]);
+            }
+        }
     }
 }
 
@@ -165,7 +244,7 @@ ostream & operator<<(ostream &os, ConllTreebank &ct){
     return os;
 }
 
-void parse_morphology(String &s, vector<int> &morph){
+void parse_morphology(String &s, vector<int> &morph, bool train){
     morph.clear();
     if (s == L"_"){
         return;
@@ -182,7 +261,11 @@ void parse_morphology(String &s, vector<int> &morph){
         assert(k_v.size() == 2);
         string type_str;
         str::encode(type_str, k_v[0]);
-        int type_id = enc::morph.find_type_id(type_str, true);
+
+        int type_id = enc::morph.find_type_id(type_str, train);
+        if (type_id == -1){ // If not a training corpus and feature is unknown -> ignore it
+            continue;
+        }
         int value = enc::morph.code(k_v[1], type_id);
 
         keys.push_back(type_id);
@@ -201,6 +284,15 @@ void parse_morphology(String &s, vector<int> &morph){
 void read_conll_corpus(std::string &filename,
                        ConllTreebank &treebank,
                        bool train){
+
+    string type("word");
+    enc::hodor.find_type_id(type, true);
+    type = "tag";
+    enc::hodor.find_type_id(type, true);
+    type = "upos";
+    enc::hodor.find_type_id(type, true);
+    type = "xpos";
+    enc::hodor.find_type_id(type, true);
 
     ifstream in(filename);
     string buffer;
@@ -227,17 +319,17 @@ void read_conll_corpus(std::string &filename,
             continue;
         }
 
-
         int id = stoi(split_tokens[ConllU::ID]);
         String form = split_tokens[ConllU::FORM];
         int iform = enc::hodor.code(form, enc::TOK);
 
-        int cpos = enc::hodor.code(split_tokens[ConllU::UPOS], enc::TAG);
+        int cpos = enc::hodor.code(split_tokens[ConllU::UPOS], enc::UPOS);
+        int fpos = enc::hodor.code(split_tokens[ConllU::XPOS], enc::XPOS);
 
         vector<int> morpho;
-        parse_morphology(split_tokens[ConllU::FEATS], morpho);
+        parse_morphology(split_tokens[ConllU::FEATS], morpho, train);
 
-        ConllToken tok(id, form, iform, cpos, enc::UNKNOWN, morpho);
+        ConllToken tok(id, form, iform, cpos, fpos, morpho);
         tokens.push_back(tok);
     }
     in.close();

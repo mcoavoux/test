@@ -24,8 +24,7 @@ NeuralNetParameters::NeuralNetParameters():
     gaussian_noise_eta(0.1),
     gaussian_noise(true),
     gradient_clipping(true),
-    soft_clipping(false),
-    header{"word", "tag"}{}
+    soft_clipping(false){}
 
 void NeuralNetParameters::print(ostream &os){
     os << "learning rate\t"       << learning_rate << endl;
@@ -50,10 +49,10 @@ void NeuralNetParameters::print(ostream &os){
     os << "char based embedding size\t" << rnn.crnn.dim_char_based_embeddings << endl;
 //    os << "auxiliary task\t" << rnn.auxiliary_task << endl;
 //    os << "auxiliary task max idx\t" << rnn.auxiliary_task_max_target << endl;
-    os << "voc sizes\t";
-    for (int &i : voc_sizes){
-        os << " " << i;
-    } os << endl;
+//    os << "voc sizes\t";
+//    for (int &i : voc_sizes){
+//        os << " " << i;
+//    } os << endl;
 }
 
 void NeuralNetParameters::read_option_file(const string &filename, NeuralNetParameters &p){
@@ -115,15 +114,15 @@ void NeuralNetParameters::read_option_file(const string &filename, NeuralNetPara
                 }
                 break;
             }
-            case VOC_SIZES:{
-                vector<string> sizes;
-                str::split(tokens[1], " ", "", sizes);
-                p.voc_sizes.clear();
-                for (string &s : sizes){
-                    p.voc_sizes.push_back(stoi(s));
-                }
-                break;
-            }
+//            case VOC_SIZES:{
+//                vector<string> sizes;
+//                str::split(tokens[1], " ", "", sizes);
+//                p.voc_sizes.clear();
+//                for (string &s : sizes){
+//                    p.voc_sizes.push_back(stoi(s));
+//                }
+//                break;
+//            }
             //case BI_RNN: p.rnn_feature_extractor = stoi(tokens[1]);     break;
             case RNN_CELL_TYPE: p.rnn.cell_type = stoi(tokens[1]);      break;
             case RNN_DEPTH: p.rnn.depth = stoi(tokens[1]);              break;
@@ -134,7 +133,9 @@ void NeuralNetParameters::read_option_file(const string &filename, NeuralNetPara
             case CHAR_BASED_EMBEDDING_SIZE: p.rnn.crnn.dim_char_based_embeddings = stoi(tokens[1]); break;
 //            case AUX_TASK: p.rnn.auxiliary_task = stoi(tokens[1]);                break;
 //            case AUX_TASK_IDX: p.rnn.auxiliary_task_max_target = stoi(tokens[1]); break;
-            default: assert(false && "Unknown nn option");
+            default:
+                cerr << "Unknown nn option:" << buffer << endl;
+                assert(false && "Unknown nn option");
             }
         }else{
             cerr << "Unknown nn option or problematic formatting : " << buffer << endl;
