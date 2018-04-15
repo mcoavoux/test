@@ -9,74 +9,133 @@
 
 using namespace std;
 
+struct EpochEval{
+    Output output;
+    float total;
+    vector<float> a;
+    vector<float> l;
+
+    EpochEval(Output &o): output(o), total(0.0){
+        int size = 1;
+        if (o.xpos){
+            size ++;
+        }
+        if (o.morph){
+            size ++;
+        }
+        a = vector<float>(size, 0.0);
+        l = vector<float>(size, 0.0);
+    }
+    void update_losses(vector<float> &losses){
+        int id = 0;
+        int k = 0;
+        l[id++] += losses[k++];
+        if (output.xpos){
+            l[id++] += losses[k++];
+        }
+        if (output.morph){
+            for (int i = k; i < k + output.n_feats; i++){
+                l[id] += losses[i];
+            }
+            id ++;
+            k += output.n_feats;
+        }
+        assert(id == a.size());
+        assert(k == losses.size());
+    }
+
+    void update(vector<int> &gold, vector<int> &pred){
+        assert(gold.size() == pred.size());
+        total += 1;
+        int id = 0;
+        int k = 0;
+        if (gold[k] == pred[k]){
+            a[id] += 1;
+        }
+        id++;
+        k++;
+        if (output.xpos){
+            if (gold[k] == pred[k]){
+                a[id] += 1;
+            }
+            id++;
+            k++;
+        }
+        if (output.morph){
+            bool correct = true;
+            for (int i = k; i < k + output.n_feats; i++){
+                if (gold[i] != pred[i]){
+                    correct = false;
+                }
+            }
+            if (correct){
+                a[id] += 1;
+            }
+            id++;
+            k += output.n_feats;
+        }
+        assert(id == a.size());
+        assert(k == pred.size());
+    }
+    int size(){
+        return a.size();
+    }
+    float get_acc(int i){
+        return a[i] / total * 100.0;
+    }
+    float get_loss(int i){
+        return l[i] / total;
+    }
+
+    friend ostream& operator<<(ostream &os, EpochEval &ev){
+        os << "a: ";
+        for (int i = 0; i < ev.size(); i ++){
+            os << std::setprecision(4) << ev.get_acc(i) << " ";
+        }
+        os << "l: ";
+        for (int i = 0; i < ev.size(); i ++){
+            os << std::setprecision(4) << ev.get_loss(i) << " ";
+        }
+        return os;
+    }
+};
+
 struct EpochSummary{
     int epoch;
-    vector<float> taccuracy;
-    vector<float> tloss;
-    vector<float> daccuracy;
-    vector<float> dloss;
+    EpochEval train;
+    EpochEval dev;
 
-    EpochSummary(int e, float size_t,
-                 vector<float> &tacc,
-                 vector<float> &tloss,
-                 float size_d,
-                 vector<float> dacc,
-                 vector<float> dloss):
-        epoch(e),
-        taccuracy(tacc),
-        tloss(tloss),
-        daccuracy(dacc),
-        dloss(dloss){
-        for (int i = 0; i < taccuracy.size(); i++){
-            taccuracy[i] = taccuracy[i] / size_t * 100.0;
-        }
-        for (int i = 0; i < daccuracy.size(); i++){
-            daccuracy[i] = daccuracy[i] / size_d * 100.0;
-        }
-        for (int i = 0; i < tloss.size(); i++){
-            tloss[i] = tloss[i] / size_t;
-        }
-        for (int i = 0; i < dloss.size(); i++){
-            dloss[i] = dloss[i] / size_d;
-        }
-    }
+    EpochSummary(int e,
+                 EpochEval &train,
+                 EpochEval &dev):epoch(e),
+                                 train(train),
+                                 dev(dev){}
 
     void print(ostream &os){
         os << "\rEpoch " << epoch
-           << " train a= ";
-        for (int i = 0; i < taccuracy.size(); i++){
-            os << std::setprecision(4) << taccuracy[i] << " ";
-        }
-        os << "l= ";
-        for (int i = 0; i < tloss.size(); i++){
-            os << std::setprecision(4) << tloss[i] << " ";
-        }
-        os << " dev a= ";
-        for (int i = 0; i < daccuracy.size(); i++){
-            os << std::setprecision(4) << daccuracy[i] << " ";
-        }
-        os << "l= ";
-        for (int i = 0; i < dloss.size(); i++){
-            os << std::setprecision(4) << dloss[i] << " ";
-        }
+           << " train " << train
+           << " dev " << dev << endl;
     }
 
     void log(ostream &os){
         os << epoch;
-        for (int i = 0; i < taccuracy.size(); i++){
-            os << "\t" << taccuracy[i];
+        for (int i = 0; i < train.size(); i++){
+            os << "\t" << train.get_acc(i);
         }
-        for (int i = 0; i < tloss.size(); i++){
-            os << "\t" << tloss[i];
+        for (int i = 0; i < train.size(); i++){
+            os << "\t" << train.get_loss(i);
         }
-        for (int i = 0; i < daccuracy.size(); i++){
-            os << "\t" << daccuracy[i];
+        for (int i = 0; i < dev.size(); i++){
+            os << "\t" << dev.get_acc(i);
         }
-        for (int i = 0; i < dloss.size(); i++){
-            os << "\t" << dloss[i];
+        for (int i = 0; i < dev.size(); i++){
+            os << "\t" << dev.get_loss(i);
         }
     }
 };
+
+
+
 
 struct Options{
     enum {TRAIN, TEST};
@@ -153,6 +212,23 @@ void print_help(){
         "Testing mode options:" << endl <<
         "  -T     --test           [STRING]    training corpus (conll format)   " << endl <<
         "  -l     --load-model      [STRING]    model directory" << endl << endl;
+}
+
+void evaluate(shared_ptr<BiLstmTagger> tagger, Output &output, ConllTreebank &tbk, EpochEval &eval){
+    vector<float> losses(output.n_labels.size(), 0.0);
+    vector<STRCODE> X;
+    vector<vector<int>> Y;
+    vector<vector<int>> predictions;
+    for (int i = 0; i < tbk.size(); i++){
+        tbk[i]->to_training_example(X, Y, output);
+        tagger->eval_one(X, Y, predictions, losses);
+        eval.update_losses(losses);
+        assert(Y.size() == predictions.size());
+        for (int j = 0; j < Y.size(); j++){
+            assert(Y[j].size() == predictions[j].size());
+            eval.update(Y[j], predictions[j]);
+        }
+    }
 }
 
 int main(int argc, char *argv[]){
@@ -250,42 +326,26 @@ int main(int argc, char *argv[]){
             shared_ptr<BiLstmTagger> avg_t(tagger.copy());
             avg_t->average_parameters();
 
-            float ttotal = 0;
-            vector<float> tlosses(output.n_labels.size(), 0.0);
-            vector<float> taccuracies(output.n_labels.size(), 0.0);
+            EpochEval eval_train(output);
+            evaluate(avg_t, output, train_sample, eval_train);
 
-            for (int i = 0; i < train_sample.size(); i++){
-                train_sample[i]->to_training_example(X, Y, output);
-                ttotal += X.size();
-                avg_t->eval_one(X, Y, tlosses, taccuracies);
-            }
-
-            float dtotal = 0;
-            vector<float> dlosses(output.n_labels.size(), 0.0);
-            vector<float> daccuracies(output.n_labels.size(), 0.0);
-
-            for (int i = 0; i < dev.size(); i++){
-                dev[i]->to_training_example(X, Y, output);
-                dtotal += X.size();
-                avg_t->eval_one(X, Y, dlosses, daccuracies);
-            }
-
-            EpochSummary sum(epoch, ttotal, taccuracies, tlosses,
-                                    dtotal, daccuracies, dlosses);
+            EpochEval eval_dev(output);
+            evaluate(avg_t, output, dev, eval_dev);
+            EpochSummary sum(epoch, eval_train, eval_dev);
 
             sum.print(cout);
 
             sum.log(log_file);
 
             models.push_back(avg_t);
-            dev_accuracies.push_back(daccuracies[0] / dtotal);
+            dev_accuracies.push_back(eval_dev.get_acc(0));
         }
 
         log_file.close();
 
         int argmax = 0;
         for (int i = 0; i < dev_accuracies.size(); i++){
-            if (dev_accuracies[i] > dev_accuracies[argmax]){
+            if (dev_accuracies[i] >= dev_accuracies[argmax]){
                 argmax = i;
             }
         }

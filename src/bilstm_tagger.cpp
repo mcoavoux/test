@@ -64,22 +64,10 @@ void BiLstmTagger::predict_one(vector<STRCODE> &X, vector<vector<int>> &Y){
     this->get_predictions(Y);
 }
 
-void BiLstmTagger::eval_one(vector<STRCODE> &X, vector<vector<int>> &Y, vector<float> &losses, vector<float> &accuracies){
-
-    vector<vector<int>> predictions;
+void BiLstmTagger::eval_one(vector<STRCODE> &X, vector<vector<int>> &Y, vector<vector<int>> &predictions, vector<float> &losses){
     this->fprop(X);
     this->get_losses(losses, Y);
     this->get_predictions(predictions);
-
-    assert(predictions.size() == Y.size());
-    for (int i = 0; i < predictions.size(); i++){
-        assert(predictions[i].size() == n_classes_.size() && Y[i].size() == n_classes_.size());
-        for (int t = 0; t < n_classes_.size(); t++){
-            if (predictions[i][t] == Y[i][t]){
-                accuracies[t] ++;
-            }
-        }
-    }
 }
 
 void BiLstmTagger::fprop(vector<STRCODE> &X){
