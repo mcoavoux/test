@@ -99,11 +99,12 @@ def do_experiment(param):
     hyperfile = "{}/hyperparameters_orig".format(modeldir)
     print_hyperparameters(hyperfile, param)
     
-    train_command_line = '../bin/main -m train -t {t} -d {d} -p {hyp} -i {i} -o {modelname} > {modelname}/log.txt'
+    train_command_line = '../bin/main -m train -t {t} -d {d} -p {hyp} -i {i} -o {modelname} -M {multi} > {modelname}/log.txt'
     train_command_line = train_command_line.format(t=train,
                                                    d=dev,
                                                    hyp=hyperfile,
                                                    i=args.iterations,
+                                                   multi=args.multi,
                                                    modelname=modeldir)
     
     unix(train_command_line)
@@ -156,6 +157,8 @@ if __name__ == "__main__":
     parser.add_argument("--decrease-constant", "-d", type=float, nargs="+", default=[1e-6])
     parser.add_argument("--hard-clipping", "-g", type=float, nargs="+", default=[10])
     parser.add_argument("--gaussian-noise", "-G", type=float, nargs="+", default=[0.01])
+    
+    parser.add_argument("--multitask", "-M", type=str, default="xm")
     
     args = parser.parse_args()
     
