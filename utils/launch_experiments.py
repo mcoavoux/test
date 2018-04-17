@@ -104,8 +104,8 @@ def do_experiment(param):
                                                    d=dev,
                                                    hyp=hyperfile,
                                                    i=args.iterations,
-                                                   multi=args.multi,
-                                                   modelname=modeldir)
+                                                   modelname=modeldir,
+                                                   multi=args.multitask)
     
     unix(train_command_line)
     
