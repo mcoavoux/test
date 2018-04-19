@@ -71,6 +71,7 @@ def main(args):
         bl = bilty_results[lang]
         
         diff = lres[1] - max([i for i in bl if type(i) == float])
+        diff = round(diff, 2)
         
         l = [lang] +  lres[:2] + bl + [diff] + [lres[-1]]
         
