@@ -73,7 +73,7 @@ def main(args):
         diff = lres[1] - max([i for i in bl if type(i) == float])
         diff = round(diff, 2)
         
-        diff_supervised = lres[1] - max(bl[0])
+        diff_supervised = lres[1] - bl[0]
         
         l = [lang] +  lres[:2] + bl + [diff, diff_supervised] + [lres[-1]]
         
