@@ -1,4 +1,4 @@
-
+from collections import defaultdict
 
 ID,FORM,LEMMA,CPOS,FPOS,MORPH,HEAD,DEPREL,PHEAD,PDEPREL=range(10)
 
@@ -14,10 +14,22 @@ def read_conll(filename) :
             #tok[HEAD] = int(tok[HEAD])
     return sentences
 
-def evaluate(gold, pred) :
+def eval_morph(g, p):
+    if g == p:
+        return True
+    if "_" in {g, p}:
+        return False
+    d = dict([kv.split("=") for kv in g.split("|")])
+    p = dict([kv.split("=") for kv in p.split("|")])
+    return p == d
 
+def evaluate(gold, pred) :
+    
+    confusion = defaultdict(lambda:defaultdict(int))
+    
     cpos = 0.0
     fpos = 0.0
+    morph = 0.0
     #uas = 0.0
     #las = 0.0
 
@@ -29,17 +41,40 @@ def evaluate(gold, pred) :
             if tg[FORM] != ts[FORM] :
                 sys.stderr.write("{} {}\n".format(tg[FORM], ts[FORM]))
             assert(tg[FORM] == ts[FORM])
-
+            
+            confusion[tg[CPOS]][ts[CPOS]] += 1
+            
             if tg[CPOS] == ts[CPOS] :
                 cpos += 1
             if tg[FPOS] == ts[FPOS] :
                 fpos += 1
+            
+            if eval_morph(tg[MORPH], ts[MORPH]):
+                morph += 1
             tot += 1
     
     cpos = round(cpos / tot * 100, 2)
     fpos = round(fpos / tot * 100, 2)
+    morph = round(morph / tot * 100, 2)
     
-    print("{}\t{}".format(cpos, fpos))
+    print("{}\t{}\t{}".format(cpos, fpos, morph))
+    
+    labels = sorted(confusion)
+    print("\t".join([""] + labels))
+    for l1 in labels:
+        d = confusion[l1]
+        l = [l1] + [str(d[l2]) for l2 in labels]
+        print("\t".join(l))
+    print()
+    
+    print("\t".join([""] + labels))
+    for l1 in labels:
+        d = confusion[l1]
+        summ = sum(d.values())
+        l = [round(d[l2] / summ * 100, 2) for l2 in labels]
+        l = [l1] + [str(i) for i in l]
+        print("\t".join(l))
+
 
 if __name__ == "__main__" :
         import sys

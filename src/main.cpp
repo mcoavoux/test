@@ -362,6 +362,10 @@ int main(int argc, char *argv[]){
 
         output.export_model(options.output_dir);
 
+        ofstream outfile(options.output_dir + "/best_epoch");
+        outfile << argmax << endl;
+        outfile.close();
+
     }else{
         assert(options.mode == Options::TEST);
 
@@ -379,8 +383,6 @@ int main(int argc, char *argv[]){
         output.get_output_sizes();
         BiLstmTagger tagger(voc_size, output.n_labels, options.params);
         tagger.import_model(options.output_dir);
-
-
 
         ConllTreebank test;
         read_conll_corpus(options.test_file, test, false);
