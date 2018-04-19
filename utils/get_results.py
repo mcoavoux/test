@@ -65,6 +65,8 @@ def main(args):
     header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta-best", "delta-supervised", "model"]
     
     print("\t".join(header))
+    
+    avg = ["Avg", 0, 0, 0, 0, 0, 0]
     for lang in sorted(results):
         
         lres = results[lang]
@@ -77,7 +79,18 @@ def main(args):
         
         l = [lang] +  lres[:2] + bl + [diff, diff_supervised] + [lres[-1]]
         
+        avg[1]+= lres[0]
+        avg[2]+= lres[1]
+        avg[3]+= bl[0]
+        #avg[4]+= bl[1]
+        avg[5]+= diff
+        avg[6]+= diff_supervised
+        
         print("\t".join(map(str, l)))
+    
+    for i in range(1, len(avg)):
+        avg[i] = round(avg[i] / len(results), 2)
+    print("\t".join(map(str, avg)))
     
 
 if __name__ == "__main__":

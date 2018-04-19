@@ -34,7 +34,7 @@ def print_hyperparameters(filename, parameters):
 
 def generate_options(args):
     
-    languages = [line.strip() for line in open(args.languages)]
+    languages = [line.strip().split() for line in open(args.languages)]
 
     for lang, depth, hs, w, W, c, C, lr, dc, cv, ge, hl in product(languages,
                         args.depth_rnn,
@@ -49,7 +49,8 @@ def generate_options(args):
                         args.gaussian_noise,
                         args.hidden_layers):
         yield {"args" : args,
-                "lang" : lang,
+                "lang" : lang[0],
+                "multi": lang[1],
                 "depth" : depth,
                 "hs": hs,
                 "w" : w,
@@ -106,7 +107,7 @@ def do_experiment(param):
                                                    hyp=hyperfile,
                                                    i=args.iterations,
                                                    modelname=modeldir,
-                                                   multi=args.multitask)
+                                                   multi=param["multi"])
     
     unix(train_command_line)
     
@@ -141,11 +142,10 @@ if __name__ == "__main__":
     
     parser.add_argument("data", type=str, help="dataset")
     parser.add_argument("output", type=str, help="output folder")
+    parser.add_argument("languages", type=str, help="Language list, with list of attributes to predict")
 
     parser.add_argument("--iterations", "-i", type=int, default=20, help="Number of iterations per experiment")
     parser.add_argument("--threads", "-N", type=int, default=1, help="Max number of experiments in parallel")
-    
-    parser.add_argument("--languages", type=str, default="lang_canonic.txt", help="Language list")
     parser.add_argument("--hidden-layers", "-L", type=int, nargs="+", default=[0], help="Number of hidden layers")
     parser.add_argument("--dim-hidden", "-H", type=int, nargs="+", default=[32], help="Size of hidden layers")
     parser.add_argument("--dim-word","-w", type=int, nargs="+", default=[16], help="Dimension of word embeddings")
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     parser.add_argument("--hard-clipping", "-g", type=float, nargs="+", default=[10])
     parser.add_argument("--gaussian-noise", "-G", type=float, nargs="+", default=[0.01])
     
-    parser.add_argument("--multitask", "-M", type=str, default="xm")
+    #parser.add_argument("--multitask", "-M", type=str, default="xm")
     
     args = parser.parse_args()
     
