@@ -39,12 +39,40 @@ def get_results(expedir):
 
     return result
 
+
+def get_bilty_results():
+    instream = open("results_bilty")
+    res = {}
+    for line in instream:
+        if " | " in line and "Lang" not in line and ":|" not in line:
+            sline = line.replace("|", "").split()
+            assert(len(sline) == 3)
+            
+            n1, n2 = "-", "-"
+            if sline[1] != "--":
+                n1 = float(sline[1])
+            if sline[2] != "--":
+                n2 = float(sline[2])
+            res[sline[0]] = [n1, n2]
+    return res
+
 def main(args):
     
     results = get_results(args.expedir)
     
+    bilty_results = get_bilty_results()
+    
+    header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta", "model"]
+    
     for lang in sorted(results):
-        l = [lang] + results[lang]
+        
+        lres = results[lang]
+        bl = bilty_results[lang]
+        
+        diff = lres[1] - max([i for i in bl if type(i) == float])
+        
+        l = [lang] +  lres[:2] + bl + [diff] + lres[-1]
+        
         print("\t".join(map(str, l)))
     
 

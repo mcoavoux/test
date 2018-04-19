@@ -14,7 +14,6 @@ gaussian noise eta	{ge}
 hidden layers	{hl}
 size hidden layers	{hs}
 embedding sizes	 {w} 16 16
-bi-rnn	1
 cell type	2
 rnn depth	{depth}
 rnn state size	{W}
@@ -22,9 +21,11 @@ number of token feature (rnn)	1
 char rnn	1
 char embedding size	{c}
 char based embedding size	{C}
-auxiliary task	1
-auxiliary task max idx	20
 """
+
+#bi-rnn	1
+#auxiliary task	1
+#auxiliary task max idx	20
 
 def print_hyperparameters(filename, parameters):
     out = open(filename, "w")
