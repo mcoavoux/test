@@ -311,7 +311,10 @@ int main(int argc, char *argv[]){
 
         ofstream log_file(options.output_dir + "/logger");
 
-        for (int epoch = 0; epoch < options.epochs; epoch ++){
+
+        float training_accuracy = 0.0;
+
+        for (int epoch = 0; epoch < options.epochs || training_accuracy <= 99.0; epoch ++){
 
             train.shuffle();
 
@@ -329,6 +332,8 @@ int main(int argc, char *argv[]){
             EpochEval eval_train(output);
             evaluate(avg_t, output, train_sample, eval_train);
 
+            training_accuracy = eval_train.get_acc(0);
+
             EpochEval eval_dev(output);
             evaluate(avg_t, output, dev, eval_dev);
             EpochSummary sum(epoch, eval_train, eval_dev);
@@ -339,6 +344,10 @@ int main(int argc, char *argv[]){
 
             models.push_back(avg_t);
             dev_accuracies.push_back(eval_dev.get_acc(0));
+
+            if (epoch > 100){
+                break;
+            }
         }
 
         log_file.close();
