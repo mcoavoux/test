@@ -71,7 +71,7 @@ def main(args):
         
         diff = lres[1] - max([i for i in bl if type(i) == float])
         
-        l = [lang] +  lres[:2] + bl + [diff] + lres[-1]
+        l = [lang] +  lres[:2] + bl + [diff] + [lres[-1]]
         
         print("\t".join(map(str, l)))
     
