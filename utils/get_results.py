@@ -64,6 +64,7 @@ def main(args):
     
     header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta", "model"]
     
+    print("\t".join(header))
     for lang in sorted(results):
         
         lres = results[lang]
