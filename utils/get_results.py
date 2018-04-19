@@ -62,7 +62,7 @@ def main(args):
     
     bilty_results = get_bilty_results()
     
-    header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta", "model"]
+    header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta-best", "delta-supervised", "model"]
     
     print("\t".join(header))
     for lang in sorted(results):
@@ -73,7 +73,9 @@ def main(args):
         diff = lres[1] - max([i for i in bl if type(i) == float])
         diff = round(diff, 2)
         
-        l = [lang] +  lres[:2] + bl + [diff] + [lres[-1]]
+        diff_supervised = lres[1] - max(bl[0])
+        
+        l = [lang] +  lres[:2] + bl + [diff, diff_supervised] + [lres[-1]]
         
         print("\t".join(map(str, l)))
     
