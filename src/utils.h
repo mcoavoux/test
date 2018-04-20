@@ -55,6 +55,8 @@ namespace enc{
 
         int size();
 
+        int longest_size();
+
         friend ostream & operator<<(ostream &os, StrDict &ts);
     };
 
@@ -78,6 +80,7 @@ namespace enc{
         String decode(STRCODE i, int type);
         string decode_to_str(STRCODE i, int type);
         int size(int type);
+        int longest_size(int type);
         void vocsizes(vector<int> &sizes);
         void reset();
         void export_model(const string &outdir, const string prefix);

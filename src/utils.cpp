@@ -53,6 +53,16 @@ int StrDict::size(){
     return size_;
 }
 
+int StrDict::longest_size(){
+    int max = 0;
+    for (String& s: decoder){
+        if (s.size() > max){
+            max = s.size();
+        }
+    }
+    return max;
+}
+
 ostream & operator<<(ostream &os, StrDict &ts){
     for (int i = 0; i < ts.decoder.size(); i++){
         os << str::encode(ts.decoder[i]) << endl;
@@ -103,6 +113,10 @@ string TypedStrEncoder::decode_to_str(STRCODE i, int type){
 int TypedStrEncoder::size(int type){
     ensure_size(type);
     return encoders[type].size();
+}
+
+int TypedStrEncoder::longest_size(int type){
+    return encoders[type].longest_size();
 }
 
 void TypedStrEncoder::vocsizes(vector<int> &sizes){

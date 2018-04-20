@@ -3,7 +3,13 @@
 #include "conll_utils.h"
 
 
-Output::Output(string s):code(s), xpos(false), morph(false), n_feats(0){
+Output::Output(string s):
+    code(s),
+    xpos(false),
+    morph(false),
+    n_feats(0),
+    n_chars(false),
+    max_chars(0){
     initialize(s);
 }
 
@@ -11,8 +17,11 @@ void Output::initialize(string s){
     if (s.find('x') != string::npos){
         xpos = true;
     }
-    if (s.find('m' != string::npos)){
+    if (s.find('m') != string::npos){
         morph = true;
+    }
+    if (s.find('c') != string::npos){
+        n_chars = true;
     }
 }
 
@@ -27,6 +36,10 @@ void Output::get_output_sizes(){
         for (int i = 0; i < enc::morph.size(); i++){
             n_labels.push_back(enc::morph.size(i));
         }
+    }
+    if (this->n_chars){
+        assert(max_chars > 0);
+        n_labels.push_back(max_chars / 3 + 1);
     }
 }
 
@@ -126,6 +139,10 @@ void ConllToken::set_morpho(int type, int val){
     _morpho[type] = val;
 }
 
+int ConllToken::len_form(){
+    return _form.size();
+}
+
 ostream & operator<<(ostream &os, ConllToken &ct){
     os << ct.i() << "\t"
        << str::encode(ct._form) << "\t"
@@ -167,6 +184,13 @@ void ConllTree::to_training_example(vector<STRCODE> &X, vector<vector<int>> &Y, 
             for (int i = 0; i < output.n_feats; i++){
                 label.push_back(tok.get_morpho(i));
             }
+        }
+        if (output.n_chars){
+            int size = tok.len_form() / 3 + 1;
+            if (size >= output.max_chars / 3 + 1){
+                size = 0;
+            }
+            label.push_back(size);
         }
         Y.push_back(label);
     }

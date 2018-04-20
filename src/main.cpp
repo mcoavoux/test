@@ -293,7 +293,9 @@ int main(int argc, char *argv[]){
         read_conll_corpus(options.dev_file, dev, false);
 
         int voc_size = enc::hodor.size(enc::TOK);
+        int longest = enc::hodor.longest_size(enc::TOK) + 1;
 
+        output.max_chars = longest;
         output.get_output_sizes();
 
         cout << "Hyperparameters" << endl;

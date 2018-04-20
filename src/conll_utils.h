@@ -28,6 +28,9 @@ struct Output{
     bool xpos;
     bool morph;
     int n_feats;
+
+    bool n_chars;
+    int max_chars;
     vector<int> n_labels;
 
     Output(string s);
@@ -55,6 +58,7 @@ class ConllToken{
 public:
     //ConllToken(int position, String _form, int _iform);
     ConllToken(int position, String _form, int _iform, int _cpos, int _fpos, vector<int> morpho);
+
     int i();
     int form();
     int cpos();
@@ -67,6 +71,8 @@ public:
     bool has_morpho();
     int get_morpho(int type);
     void set_morpho(int type, int val);
+
+    int len_form();
 
     friend ostream & operator<<(ostream &os, ConllToken &ct);
 };

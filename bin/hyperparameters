@@ -6,11 +6,11 @@ gaussian noise	1
 gaussian noise eta	0.01
 hidden layers	0
 size hidden layers	32
-embedding sizes	 16 16 16
+embedding sizes	 20 16 16
 cell type	2
-rnn depth	4
-rnn state size	32
+rnn depth	2
+rnn state size	100
 number of token feature (rnn)	1
 char rnn	1
-char embedding size	16
-char based embedding size	16
+char embedding size	50
+char based embedding size	100
