@@ -292,6 +292,8 @@ int main(int argc, char *argv[]){
         read_conll_corpus(options.train_file, train, true);
         read_conll_corpus(options.dev_file, dev, false);
 
+        output.update_bigrams(train);
+
         int voc_size = enc::hodor.size(enc::TOK);
         int longest = enc::hodor.longest_size(enc::TOK) + 1;
 

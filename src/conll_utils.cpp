@@ -9,7 +9,8 @@ Output::Output(string s):
     morph(false),
     n_feats(0),
     n_chars(false),
-    max_chars(0){
+    max_chars(0),
+    bigram(false){
     initialize(s);
 }
 
@@ -22,6 +23,9 @@ void Output::initialize(string s){
     }
     if (s.find('c') != string::npos){
         n_chars = true;
+    }
+    if (s.find('b') != string::npos){
+        bigram = true;
     }
 }
 
@@ -41,6 +45,20 @@ void Output::get_output_sizes(){
         assert(max_chars > 0);
         n_labels.push_back(max_chars / 3 + 1);
     }
+    if (this->bigram){
+        assert(bigrams.size() > 0);
+        int max = 0;
+        for (auto it = bigrams.begin(); it != bigrams.end(); ++it){
+            if (it->second > max){
+                max = it->second;
+            }
+        }
+        assert(bigrams.size() == max);
+        n_labels.push_back(max + 1);
+    }
+    for (int i = 0; i < n_labels.size(); i ++){
+        cerr << "Output size " << i << "  " << n_labels[i] << endl;
+    }
 }
 
 void Output::export_model(string output_dir){
@@ -54,6 +72,23 @@ void Output::import_model(string output_dir){
     in >> code;
     initialize(code);
     in.close();
+}
+
+void Output::update_bigrams(ConllTreebank &treebank){
+    for (int i = 0; i < treebank.size(); i++){
+        ConllTree *tree = treebank[i];
+        for (int j = 0; j < tree->size(); j++){
+            int first = 0;
+            if (j > 0){
+                first = (*tree)[j-1]->cpos();
+            }
+            int second = (*tree)[j]->cpos();
+            if (bigrams.find(make_pair(first, second)) == bigrams.end()){
+                int id = bigrams.size() + 1;
+                bigrams[make_pair(first, second)] = id;
+            }
+        }
+    }
 }
 
 
@@ -191,6 +226,18 @@ void ConllTree::to_training_example(vector<STRCODE> &X, vector<vector<int>> &Y, 
                 size = 0;
             }
             label.push_back(size);
+        }
+        if (output.bigram){
+            int second = tok.cpos();
+            int first = 0;
+            if (tok.i() -1 > 0){ // conll id starts at 1
+                first = tokens[tok.i()-2].cpos();
+            }
+            if (output.bigrams.find(make_pair(first, second)) != output.bigrams.end()){
+                label.push_back(output.bigrams[make_pair(first, second)]);
+            }else{
+                label.push_back(0);
+            }
         }
         Y.push_back(label);
     }

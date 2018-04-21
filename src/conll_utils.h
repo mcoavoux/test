@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
+#include <boost/functional/hash.hpp>
+
 
 #include "utils.h"
 #include "random_utils.h"
@@ -13,6 +15,8 @@ using std::string;
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::pair;
+using std::make_pair;
 
 //struct Morph{
 //    unordered_map<int, int> content;
@@ -22,6 +26,8 @@ using std::endl;
 //};
 
 namespace ConllU{enum{ID, FORM, LEMMA, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS, MISC};}
+
+class ConllTreebank;
 
 struct Output{
     string code;
@@ -33,12 +39,17 @@ struct Output{
     int max_chars;
     vector<int> n_labels;
 
+    bool bigram;
+    unordered_map<pair<int, int>, int, boost::hash<pair<int, int>>> bigrams;
+
     Output(string s);
     void initialize(string s);
     void get_output_sizes();
 
     void export_model(string output_dir);
     void import_model(string output_dir);
+
+    void update_bigrams(ConllTreebank &treebank);
 };
 
 
