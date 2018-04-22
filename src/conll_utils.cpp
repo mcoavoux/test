@@ -2,6 +2,7 @@
 
 #include "conll_utils.h"
 
+const int Output::BASE = 100;
 
 Output::Output(string s):
     code(s),
@@ -10,7 +11,8 @@ Output::Output(string s):
     n_feats(0),
     n_chars(false),
     max_chars(0),
-    bigram(false){
+    bigram(false),
+    trigram(false){
     initialize(s);
 }
 
@@ -26,6 +28,9 @@ void Output::initialize(string s){
     }
     if (s.find('b') != string::npos){
         bigram = true;
+    }
+    if (s.find('t') != string::npos){
+        trigram = true;
     }
 }
 
@@ -56,9 +61,21 @@ void Output::get_output_sizes(){
         assert(bigrams.size() == max);
         n_labels.push_back(max + 1);
     }
-    for (int i = 0; i < n_labels.size(); i ++){
-        cerr << "Output size " << i << "  " << n_labels[i] << endl;
+    if (this->trigram){
+        assert(trigrams.size() > 0);
+        int max = 0;
+        for (auto it = trigrams.begin(); it != trigrams.end(); ++it){
+            if (it->second > max){
+                max = it->second;
+            }
+        }
+        assert(trigrams.size() == max);
+        n_labels.push_back(max + 1);
     }
+
+    //    for (int i = 0; i < n_labels.size(); i ++){
+//        cerr << "Output size " << i << "  " << n_labels[i] << endl;
+//    }
 }
 
 void Output::export_model(string output_dir){
@@ -83,9 +100,21 @@ void Output::update_bigrams(ConllTreebank &treebank){
                 first = (*tree)[j-1]->cpos();
             }
             int second = (*tree)[j]->cpos();
-            if (bigrams.find(make_pair(first, second)) == bigrams.end()){
+
+            int third = 0;
+            if (j + 1 < tree->size()){
+                third = (*tree)[j+1]->cpos();
+            }
+
+            int pair_id = first + second * BASE;
+            if (bigrams.find(pair_id) == bigrams.end()){
                 int id = bigrams.size() + 1;
-                bigrams[make_pair(first, second)] = id;
+                bigrams[pair_id] = id;
+            }
+            int triple_id = first + second * BASE + third * BASE * BASE;
+            if (trigrams.find(triple_id) == trigrams.end()){
+                int id = trigrams.size() + 1;
+                trigrams[triple_id] = id;
             }
         }
     }
@@ -233,8 +262,26 @@ void ConllTree::to_training_example(vector<STRCODE> &X, vector<vector<int>> &Y, 
             if (tok.i() -1 > 0){ // conll id starts at 1
                 first = tokens[tok.i()-2].cpos();
             }
-            if (output.bigrams.find(make_pair(first, second)) != output.bigrams.end()){
-                label.push_back(output.bigrams[make_pair(first, second)]);
+            int pair_id = first + second * Output::BASE;
+            if (output.bigrams.find(pair_id) != output.bigrams.end()){
+                label.push_back(output.bigrams[pair_id]);
+            }else{
+                label.push_back(0);
+            }
+        }
+        if (output.trigram){
+            int second = tok.cpos();
+            int first = 0;
+            if (tok.i() -1 > 0){ // conll id starts at 1
+                first = tokens[tok.i()-2].cpos();
+            }
+            int third = 0;
+            if (tok.i() < tokens.size()){
+                third = tokens[tok.i()].cpos();
+            }
+            int triple_id = first + second * Output::BASE + third * Output::BASE * Output::BASE;
+            if (output.trigrams.find(triple_id) != output.trigrams.end()){
+                label.push_back(output.trigrams[triple_id]);
             }else{
                 label.push_back(0);
             }

@@ -30,6 +30,9 @@ namespace ConllU{enum{ID, FORM, LEMMA, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS, MI
 class ConllTreebank;
 
 struct Output{
+
+    static const int BASE;
+
     string code;
     bool xpos;
     bool morph;
@@ -40,7 +43,10 @@ struct Output{
     vector<int> n_labels;
 
     bool bigram;
-    unordered_map<pair<int, int>, int, boost::hash<pair<int, int>>> bigrams;
+    unordered_map<int, int> bigrams;
+
+    bool trigram;
+    unordered_map<int, int> trigrams;
 
     Output(string s);
     void initialize(string s);
