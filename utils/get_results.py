@@ -8,12 +8,14 @@ def get_accuracy(model):
     dev = "{}/eval_dev".format(model)
     test = "{}/eval_test".format(model)
     
+    epoch = open("{}/best_epoch".format(model)).readline().strip()
+    
     if os.path.isfile(dev) and os.path.isfile(test):
         
         dev_acc = float(open(dev).readline().split()[0])
         test_acc = float(open(test).readline().split()[0])
         
-        return dev_acc, test_acc
+        return dev_acc, test_acc, epoch
     return None
 
 def get_results(expedir):
@@ -32,10 +34,10 @@ def get_results(expedir):
             acc = get_accuracy(full_path)
             
             if acc is not None:
-                dev, test = acc
+                dev, test, epoch = acc
                 
                 if dev > best:
-                    result[lang] = [dev, test, model]
+                    result[lang] = [dev, test, model, epoch]
 
     return result
 
@@ -62,7 +64,7 @@ def main(args):
     
     bilty_results = get_bilty_results()
     
-    header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta-best", "delta-supervised", "model"]
+    header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta-best", "delta-supervised", "model", "epoch"]
     
     print("\t".join(header))
     
@@ -77,7 +79,7 @@ def main(args):
         
         diff_supervised = round(lres[1] - bl[0], 2)
         
-        l = [lang] +  lres[:2] + bl + [diff, diff_supervised] + [lres[-1]]
+        l = [lang] +  lres[:2] + bl + [diff, diff_supervised] + lres[-2:]
         
         avg[1]+= lres[0]
         avg[2]+= lres[1]
