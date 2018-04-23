@@ -8,12 +8,13 @@ def get_accuracy(model):
     dev = "{}/eval_dev".format(model)
     test = "{}/eval_test".format(model)
     
-    epoch = open("{}/best_epoch".format(model)).readline().strip()
     
     if os.path.isfile(dev) and os.path.isfile(test):
         
         dev_acc = float(open(dev).readline().split()[0])
         test_acc = float(open(test).readline().split()[0])
+        
+        epoch = open("{}/best_epoch".format(model)).readline().strip()
         
         return dev_acc, test_acc, epoch
     return None
