@@ -2,6 +2,11 @@
 
 #include "conll_utils.h"
 
+Pair::Pair(int first, int second){
+    this->first = first;
+    this->second = second;
+}
+
 const int Output::BASE = 100;
 
 Output::Output(string s):
@@ -11,8 +16,11 @@ Output::Output(string s):
     n_feats(0),
     n_chars(false),
     max_chars(0),
-    bigram(false),
-    trigram(false){
+    bigram_left(false),
+    bigram_right(false),
+    trigram(false),
+    skipgram(false),
+    experts(false){
     initialize(s);
 }
 
@@ -27,11 +35,32 @@ void Output::initialize(string s){
         n_chars = true;
     }
     if (s.find('b') != string::npos){
-        bigram = true;
+        bigram_left = true;
+    }
+    if (s.find('B') != string::npos){
+        bigram_right = true;
     }
     if (s.find('t') != string::npos){
         trigram = true;
     }
+    if (s.find('s') != string::npos){
+        skipgram= true;
+    }
+    if (s.find('e') != string::npos){
+        experts = true;
+    }
+}
+
+void Output::get_size_(unordered_map<int, int> &map){
+    assert(map.size() > 0);
+    int max = 0;
+    for (auto it = map.begin(); it != map.end(); ++it){
+        if (it->second > max){
+            max = it->second;
+        }
+    }
+    assert(map.size() == max);
+    n_labels.push_back(max + 1);
 }
 
 void Output::get_output_sizes(){
@@ -50,32 +79,23 @@ void Output::get_output_sizes(){
         assert(max_chars > 0);
         n_labels.push_back(max_chars / 3 + 1);
     }
-    if (this->bigram){
-        assert(bigrams.size() > 0);
-        int max = 0;
-        for (auto it = bigrams.begin(); it != bigrams.end(); ++it){
-            if (it->second > max){
-                max = it->second;
-            }
-        }
-        assert(bigrams.size() == max);
-        n_labels.push_back(max + 1);
+    if (this->bigram_left){
+        get_size_(bigrams_left);
+    }
+    if (this->bigram_right){
+        get_size_(bigrams_right);
     }
     if (this->trigram){
-        assert(trigrams.size() > 0);
-        int max = 0;
-        for (auto it = trigrams.begin(); it != trigrams.end(); ++it){
-            if (it->second > max){
-                max = it->second;
-            }
-        }
-        assert(trigrams.size() == max);
-        n_labels.push_back(max + 1);
+        get_size_(trigrams);
     }
-
-    //    for (int i = 0; i < n_labels.size(); i ++){
-//        cerr << "Output size " << i << "  " << n_labels[i] << endl;
-//    }
+    if (this->skipgram){
+        get_size_(skipgrams);
+    }
+    if (this->experts){
+        for (auto i = 0; i < expert_classes.size(); i++){
+            n_labels.push_back(3);
+        }
+    }
 }
 
 void Output::export_model(string output_dir){
@@ -89,6 +109,13 @@ void Output::import_model(string output_dir){
     in >> code;
     initialize(code);
     in.close();
+}
+
+void Output::update_encoder(unordered_map<int, int> &map, int pair_id){
+    if (map.find(pair_id) == map.end()){
+        int id = map.size() + 1;
+        map[pair_id] = id;
+    }
 }
 
 void Output::update_bigrams(ConllTreebank &treebank){
@@ -106,18 +133,52 @@ void Output::update_bigrams(ConllTreebank &treebank){
                 third = (*tree)[j+1]->cpos();
             }
 
-            int pair_id = first + second * BASE;
-            if (bigrams.find(pair_id) == bigrams.end()){
-                int id = bigrams.size() + 1;
-                bigrams[pair_id] = id;
-            }
-            int triple_id = first + second * BASE + third * BASE * BASE;
-            if (trigrams.find(triple_id) == trigrams.end()){
-                int id = trigrams.size() + 1;
-                trigrams[triple_id] = id;
-            }
+            update_encoder(bigrams_left, first + second * BASE);
+            update_encoder(bigrams_right, second + third * BASE);
+            update_encoder(trigrams, first + second * BASE + third * BASE * BASE);
+            update_encoder(skipgrams, first + third * BASE);
         }
     }
+}
+
+
+
+int Output::get_code_bigram_left(int first, int second){
+    return get_code(bigrams_left, first + second * BASE);
+}
+
+int Output::get_code_bigram_right(int second, int third){
+    return get_code(bigrams_right, second + third * BASE);
+}
+
+int Output::get_code_trigram(int first, int second, int third){
+    return get_code(trigrams, first + second * BASE + third * BASE * BASE);
+}
+
+int Output::get_code_skipgram(int first, int third){
+    return get_code(skipgrams, first + third * BASE);
+}
+
+int Output::get_code(unordered_map<int, int> &map, int pair_id){
+    if (map.find(pair_id) != map.end()){
+        return map[pair_id];
+    }
+    return 0;
+}
+
+bool Output::add_expert(int l1, int l2){
+    Pair p(l1, l2);
+    for (Pair o : expert_classes){
+        if (o.first == l1 && o.second == l2){
+            return false;
+        }
+    }
+    expert_classes.push_back(p);
+    cout << "Adding expert for classes " << l1 << " and " << l2
+         << " " << enc::hodor.decode_to_str(l1, enc::UPOS) << " "
+         << " and " << enc::hodor.decode_to_str(l2, enc::UPOS) << endl;
+    n_labels.push_back(3);
+    return true;
 }
 
 
@@ -235,6 +296,7 @@ int ConllTree::size(){
 }
 
 void ConllTree::to_training_example(vector<STRCODE> &X, vector<vector<int>> &Y, Output &output){
+    // This function should probably belong to Output class
     X.clear();
     Y.clear();
 
@@ -256,34 +318,41 @@ void ConllTree::to_training_example(vector<STRCODE> &X, vector<vector<int>> &Y, 
             }
             label.push_back(size);
         }
-        if (output.bigram){
-            int second = tok.cpos();
-            int first = 0;
-            if (tok.i() -1 > 0){ // conll id starts at 1
-                first = tokens[tok.i()-2].cpos();
-            }
-            int pair_id = first + second * Output::BASE;
-            if (output.bigrams.find(pair_id) != output.bigrams.end()){
-                label.push_back(output.bigrams[pair_id]);
-            }else{
-                label.push_back(0);
-            }
+        int second = tok.cpos();
+        int first = 0;
+        if (tok.i() -1 > 0){ // conll id starts at 1
+            first = tokens[tok.i()-2].cpos();
+        }
+        int third = 0;
+        if (tok.i() < tokens.size()){
+            third = tokens[tok.i()].cpos();
+        }
+        if (output.bigram_left){
+            int id = output.get_code_bigram_left(first, second);
+            label.push_back(id);
+        }
+        if (output.bigram_right){
+            int id = output.get_code_bigram_right(second, third);
+            label.push_back(id);
         }
         if (output.trigram){
-            int second = tok.cpos();
-            int first = 0;
-            if (tok.i() -1 > 0){ // conll id starts at 1
-                first = tokens[tok.i()-2].cpos();
-            }
-            int third = 0;
-            if (tok.i() < tokens.size()){
-                third = tokens[tok.i()].cpos();
-            }
-            int triple_id = first + second * Output::BASE + third * Output::BASE * Output::BASE;
-            if (output.trigrams.find(triple_id) != output.trigrams.end()){
-                label.push_back(output.trigrams[triple_id]);
-            }else{
-                label.push_back(0);
+            int id = output.get_code_trigram(first, second, third);
+            label.push_back(id);
+        }
+        if (output.skipgram){
+            int id = output.get_code_skipgram(first, third);
+            label.push_back(id);
+        }
+        if (output.experts){
+            for (Pair &p : output.expert_classes){
+                int l = 0;
+                if (second == p.first){
+                    l = 1;
+                }
+                if (second == p.second){
+                    l = 2;
+                }
+                label.push_back(l);
             }
         }
         Y.push_back(label);

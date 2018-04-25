@@ -1,12 +1,15 @@
 #include <getopt.h>
 #include <sys/stat.h>
+#include <unordered_map>
+#include <boost/functional/hash.hpp>
 
 #include "conll_utils.h"
 #include "bilstm_tagger.h"
 #include "utils.h"
 #include "neural_net_hyperparameters.h"
 
-
+using std::pair;
+using std::make_pair;
 using namespace std;
 
 struct EpochEval{
@@ -14,6 +17,8 @@ struct EpochEval{
     float total;
     vector<float> a;
     vector<float> l;
+
+    unordered_map<pair<int, int>, int, boost::hash<pair<int, int>>> confusion;
 
     EpochEval(Output &o): output(o), total(0.0){
         int size = 1;
@@ -26,6 +31,7 @@ struct EpochEval{
         a = vector<float>(size, 0.0);
         l = vector<float>(size, 0.0);
     }
+
     void update_losses(vector<float> &losses){
         int id = 0;
         int k = 0;
@@ -44,6 +50,32 @@ struct EpochEval{
         assert(k == losses.size());
     }
 
+    void update_confusion(int g, int p){
+        if (p > g){
+            int tmp = p;
+            p = g;
+            g = tmp;
+        }
+        if (confusion.find(make_pair(g, p)) == confusion.end()){
+            confusion[make_pair(g, p)] = 1;
+        }else{
+            confusion[make_pair(g, p)] += 1;
+        }
+    }
+
+    Pair most_frequent_error(){
+        int num_errors = 0;
+        Pair p(-1, -1);
+        for (auto &it : confusion){
+            if (it.second > num_errors){
+                num_errors = it.second;
+                p.first = it.first.first;
+                p.second = it.first.second;
+            }
+        }
+        return p;
+    }
+
     void update(vector<int> &gold, vector<int> &pred){
         assert(gold.size() == pred.size());
         total += 1;
@@ -51,6 +83,8 @@ struct EpochEval{
         int k = 0;
         if (gold[k] == pred[k]){
             a[id] += 1;
+        }else{
+            update_confusion(gold[k], pred[k]);
         }
         id++;
         k++;
@@ -310,15 +344,16 @@ int main(int argc, char *argv[]){
 
         BiLstmTagger tagger(voc_size, output.n_labels, options.params);
 
-        vector<shared_ptr<BiLstmTagger>> models;
-        vector<float> dev_accuracies;
+//        vector<shared_ptr<BiLstmTagger>> models;
+//        vector<float> dev_accuracies;
 
         ofstream log_file(options.output_dir + "/logger");
 
 
         float training_accuracy = 0.0;
 
-        for (int epoch = 0; epoch < options.epochs || training_accuracy <= 99.0; epoch ++){
+        float best_dev_acc = 0.0;
+        for (int epoch = 0; epoch < options.epochs || training_accuracy <= 99.6; epoch ++){
 
             train.shuffle();
 
@@ -346,8 +381,25 @@ int main(int argc, char *argv[]){
 
             sum.log(log_file);
 
-            models.push_back(avg_t);
-            dev_accuracies.push_back(eval_dev.get_acc(0));
+            float dev_acc = eval_dev.get_acc(0);
+//            models.push_back(avg_t);
+//            dev_accuracies.push_back(dev_acc);
+
+            if (dev_acc >= best_dev_acc){
+                best_dev_acc = dev_acc;
+                output.export_model(options.output_dir);
+                avg_t->export_model(options.output_dir);
+                ofstream outfile(options.output_dir + "/best_epoch");
+                outfile << epoch << endl;
+                outfile.close();
+            }
+
+            if (output.experts){
+                Pair p = eval_dev.most_frequent_error();
+                if(output.add_expert(p.first, p.second)){
+                    tagger.add_expert_classifier();
+                }
+            }
 
             if (epoch > 100){
                 break;
@@ -356,19 +408,14 @@ int main(int argc, char *argv[]){
 
         log_file.close();
 
-        int argmax = 0;
-        for (int i = 0; i < dev_accuracies.size(); i++){
-            if (dev_accuracies[i] >= dev_accuracies[argmax]){
-                argmax = i;
-            }
-        }
-        models[argmax]->export_model(options.output_dir);
-
-        output.export_model(options.output_dir);
-
-        ofstream outfile(options.output_dir + "/best_epoch");
-        outfile << argmax << endl;
-        outfile.close();
+//        int argmax = 0;
+//        for (int i = 0; i < dev_accuracies.size(); i++){
+//            if (dev_accuracies[i] >= dev_accuracies[argmax]){
+//                argmax = i;
+//            }
+//        }
+//        models[argmax]->export_model(options.output_dir);
+//        output.export_model(options.output_dir);
 
     }else{
         assert(options.mode == Options::TEST);

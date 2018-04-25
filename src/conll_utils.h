@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
-#include <boost/functional/hash.hpp>
 
 
 #include "utils.h"
@@ -15,8 +14,6 @@ using std::string;
 using std::cout;
 using std::cerr;
 using std::endl;
-using std::pair;
-using std::make_pair;
 
 //struct Morph{
 //    unordered_map<int, int> content;
@@ -28,6 +25,12 @@ using std::make_pair;
 namespace ConllU{enum{ID, FORM, LEMMA, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS, MISC};}
 
 class ConllTreebank;
+
+struct Pair{
+    int first;
+    int second;
+    Pair(int first, int second);
+};
 
 struct Output{
 
@@ -42,20 +45,41 @@ struct Output{
     int max_chars;
     vector<int> n_labels;
 
-    bool bigram;
-    unordered_map<int, int> bigrams;
+    bool bigram_left;
+    unordered_map<int, int> bigrams_left;
+
+    bool bigram_right;
+    unordered_map<int, int> bigrams_right;
 
     bool trigram;
     unordered_map<int, int> trigrams;
 
+    bool skipgram;
+    unordered_map<int, int> skipgrams;
+
+    bool experts;
+    vector<Pair> expert_classes;
+
     Output(string s);
     void initialize(string s);
+
+    void get_size_(unordered_map<int, int> &map);
     void get_output_sizes();
 
     void export_model(string output_dir);
     void import_model(string output_dir);
 
+    void update_encoder(unordered_map<int, int> &map, int pair_id);
     void update_bigrams(ConllTreebank &treebank);
+
+    int get_code_bigram_left(int first, int second);
+    int get_code_bigram_right(int second, int third);
+    int get_code_trigram(int first, int second, int third);
+    int get_code_skipgram(int first, int third);
+
+    int get_code(unordered_map<int, int> &map, int pair_id);
+
+    bool add_expert(int l1, int l2);
 };
 
 

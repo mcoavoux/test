@@ -253,8 +253,9 @@ BiRnnFeatureExtractor::BiRnnFeatureExtractor(NeuralNetParameters *nn_parameters,
         input_sizes.push_back(params->rnn.crnn.dim_char_based_embeddings);
         input_sizes.push_back(params->rnn.crnn.dim_char_based_embeddings);
     }
+    //cerr << "params->rnn.features   " << params->rnn.features << endl;
     for (int i = 0; i < params->rnn.features; i++){
-        input_sizes.push_back(params->topology.embedding_size_type[i+1]);
+        input_sizes.push_back(params->topology.embedding_size_type[i]);
     }
 
     layers.push_back(shared_ptr<RecurrentLayerWrapper>(new RecurrentLayerWrapper(params->rnn.cell_type, input_sizes, params->rnn.hidden_size)));

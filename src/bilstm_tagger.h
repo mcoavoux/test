@@ -63,6 +63,8 @@ public:
 
     void export_model(string &output_dir);
     void import_model(string &output_dir);
+
+    void add_expert_classifier();
 };
 
 

@@ -9,8 +9,6 @@ BiLstmTagger::BiLstmTagger(int vocsize, vector<int> &n_classes, NeuralNetParamet
     hidden_size = params_.topology.size_hidden_layers;
     n_hidden = params_.topology.n_hidden_layers;
 
-
-
     lu = LookupTable(vocsize, params_.topology.embedding_size_type[enc::TOK]);
 
     vector<int> input_sizes{params_.rnn.hidden_size, params_.rnn.hidden_size};
@@ -241,4 +239,32 @@ void BiLstmTagger::import_model(string &output_dir){
         parameters[i]->load(output_dir+"/parameters" + std::to_string(i));
     }
 }
+
+void BiLstmTagger::add_expert_classifier(){
+    int output_size = 3;
+    n_classes_.push_back(output_size);
+    vector<shared_ptr<Layer>> new_classifier;
+    vector<int> input_sizes{params_.rnn.hidden_size, params_.rnn.hidden_size};
+
+    if (n_hidden > 0){
+        new_classifier.push_back(shared_ptr<Layer>(new MultipleLinearLayer(2, input_sizes, hidden_size)));
+        new_classifier.push_back(shared_ptr<Layer>(new ReLU()));
+
+        for (int l = 1; l < n_hidden; l++){
+            new_classifier.push_back(shared_ptr<Layer>(new AffineLayer(hidden_size, hidden_size)));
+            new_classifier.push_back(shared_ptr<Layer>(new ReLU()));
+        }
+        new_classifier.push_back(shared_ptr<Layer>(new AffineLayer(hidden_size, output_size)));
+        new_classifier.push_back(shared_ptr<Layer>(new Softmax()));
+    }else{
+        new_classifier.push_back(shared_ptr<Layer>(new MultipleLinearLayer(2, input_sizes, output_size)));
+        new_classifier.push_back(shared_ptr<Layer>(new Softmax()));
+    }
+    layers.push_back(new_classifier);
+
+    for (int j = 0; j < new_classifier.size(); j++){
+        new_classifier[j]->get_params(this->parameters);
+    }
+}
+
 

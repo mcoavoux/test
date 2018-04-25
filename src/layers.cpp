@@ -235,10 +235,15 @@ void AffineLayer::get_params(vector<shared_ptr<Parameter>> &t){
 
 
 LinearLayer::LinearLayer(int insize, int outsize){
+    //cerr << " in : " << insize << "    " << "  out  " << outsize << endl;
     w = xavier(insize, outsize);
     dw = cw = Mat::Zero(outsize, insize);
 }
 void LinearLayer::fprop(const vector<Vec*> &data, Vec& output){
+//    cerr << data[0]->rows() << " " << data[0]->cols() << endl;
+//    cerr << output.rows() << endl;
+//    cerr << w.rows() << " " << w.cols() << endl;
+//    cerr << endl;
     output = w * *(data[0]);
 }
 void LinearLayer::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient){
@@ -255,6 +260,8 @@ void LinearLayer::get_params(vector<shared_ptr<Parameter>> &t){
 
 
 MultipleLinearLayer::MultipleLinearLayer(int insize, vector<int> &insizes, int outsize){
+    //cerr << "MLL insize  " << insize << "   insizes " << insizes.size() << endl;
+    assert(insize == insizes.size());
     b = db = cb = Vec::Zero(outsize);
     layers.resize(insize);
     for (int i = 0; i < layers.size(); i++){
