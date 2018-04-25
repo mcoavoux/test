@@ -120,7 +120,8 @@ void BiLstmTagger::fprop(vector<STRCODE> &X){
 void BiLstmTagger::get_losses(vector<float> &losses, vector<vector<int>> &targets){
     assert(losses.size() == n_classes_.size());
     for (int i = 0; i < output_nodes.size(); i++){
-        for (int t = 0; t < output_nodes[i].size(); t++){
+        //for (int t = 0; t < output_nodes[i].size(); t++){
+        for (int t = 0; t < n_classes_.size(); t++){
             Vec* v = output_nodes[i][t].back()->v();
             losses[t] += - log((*v)[targets[i][t]]);
         }
@@ -131,7 +132,11 @@ void BiLstmTagger::get_predictions(vector<vector<int>> &predictions){
     predictions.resize(output_nodes.size());
     for (int i = 0; i < output_nodes.size(); i++){
         predictions[i].resize(n_classes_.size());
-        for (int t = 0; t < output_nodes[i].size(); t++){
+        //for (int t = 0; t < output_nodes[i].size(); t++){
+        assert(output_nodes[i].size() == n_classes_.size());
+//        cerr << n_classes_.size() << endl;
+//        cerr << output_nodes[i].size() << endl;
+        for (int t = 0; t < n_classes_.size(); t++){
             Vec* v = output_nodes[i][t].back()->v();
             int argmax;
             v->maxCoeff(&argmax);

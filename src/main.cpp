@@ -46,8 +46,8 @@ struct EpochEval{
             id ++;
             k += output.n_feats;
         }
-        assert(id == a.size());
-        assert(k == losses.size());
+        //assert(id == a.size());
+        //assert(k == losses.size());
     }
 
     void update_confusion(int g, int p){
@@ -108,8 +108,8 @@ struct EpochEval{
             id++;
             k += output.n_feats;
         }
-        assert(id == a.size());
-        assert(k == pred.size());
+        //assert(id == a.size());
+        //assert(k == pred.size());
     }
     int size(){
         return a.size();

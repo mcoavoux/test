@@ -102,6 +102,13 @@ void Output::export_model(string output_dir){
     ofstream out(output_dir + "/output_code");
     out << code << endl;
     out.close();
+
+    ofstream out_pairs(output_dir + "/experts");
+    out_pairs << expert_classes.size() << endl;
+    for (Pair p : expert_classes){
+        out_pairs << p.first << " " << p.second << endl;
+    }
+    out_pairs.close();
 }
 
 void Output::import_model(string output_dir){
@@ -109,6 +116,19 @@ void Output::import_model(string output_dir){
     in >> code;
     initialize(code);
     in.close();
+
+    ifstream inex(output_dir + "/experts");
+    int n_pairs = 0;
+    inex >> n_pairs;
+    for (int i = 0; i < n_pairs; i++){
+        int f = 0;
+        int s = 0;
+        inex >> f;
+        inex >> s;
+        Pair p(f, s);
+        expert_classes.push_back(p);
+    }
+    inex.close();
 }
 
 void Output::update_encoder(unordered_map<int, int> &map, int pair_id){
