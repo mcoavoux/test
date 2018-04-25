@@ -107,7 +107,7 @@ def do_experiment(param):
                                                    hyp=hyperfile,
                                                    i=args.iterations,
                                                    modelname=modeldir,
-                                                   multi=param["multi"])
+                                                   multi=param["multi"] + args.multitask)
     
     unix(train_command_line)
     
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     parser.add_argument("--hard-clipping", "-g", type=float, nargs="+", default=[10])
     parser.add_argument("--gaussian-noise", "-G", type=float, nargs="+", default=[0.01])
     
-    #parser.add_argument("--multitask", "-M", type=str, default="xm")
+    parser.add_argument("--multitask", "-M", type=str, default="", help="Add: e(xpert), b(igram left), B(igram right), s(kip-gram)")
     
     args = parser.parse_args()
     
