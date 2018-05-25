@@ -47,6 +47,7 @@ double BiLstmTagger::get_learning_rate(){
 }
 
 void BiLstmTagger::train_one(vector<STRCODE> &X, vector<vector<int>> &Y){
+    rnn.set_train_time(true);
 
     this->fprop(X);
     this->bprop(Y);
@@ -58,11 +59,13 @@ void BiLstmTagger::train_one(vector<STRCODE> &X, vector<vector<int>> &Y){
 }
 
 void BiLstmTagger::predict_one(vector<STRCODE> &X, vector<vector<int>> &Y){
+    rnn.set_train_time(false);
     this->fprop(X);
     this->get_predictions(Y);
 }
 
 void BiLstmTagger::eval_one(vector<STRCODE> &X, vector<vector<int>> &Y, vector<vector<int>> &predictions, vector<float> &losses){
+    rnn.set_train_time(false);
     this->fprop(X);
     this->get_losses(losses, Y);
     this->get_predictions(predictions);

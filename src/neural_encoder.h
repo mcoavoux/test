@@ -61,6 +61,8 @@ class CharBiRnnFeatureExtractor{
 
     vector<vector<Vec>> precomputed_embeddings;
 
+    const int CHAR_DROPOUT = 0.2;
+
 public:
     CharBiRnnFeatureExtractor();
     CharBiRnnFeatureExtractor(CharRnnParameters *nn_parameters);
@@ -69,7 +71,7 @@ public:
     void precompute_lstm_char();
     bool has_precomputed();
     void init_encoders();
-    void build_computation_graph(vector<STRCODE> &buffer);
+    void build_computation_graph(vector<STRCODE> &buffer, bool train_time);
     void add_init_node(int depth);
     void fprop();
     void bprop();

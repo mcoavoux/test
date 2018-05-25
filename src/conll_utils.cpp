@@ -444,6 +444,10 @@ void ConllTreebank::subset(ConllTreebank &other, int n){
     }
 }
 
+unordered_map<int, int>* ConllTreebank::get_frequencies_dict(){
+    return &frequencies;
+}
+
 ostream & operator<<(ostream &os, ConllTreebank &ct){
     for (ConllTree & c: ct.trees){
         os << c << endl;

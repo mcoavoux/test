@@ -79,6 +79,7 @@ void Frequencies::update(STRCODE code, double count){
 }
 
 double Frequencies::freq(STRCODE code){
+    //cerr << code << "   " << counts.size() << endl;
     assert(code < counts.size());
     //return counts[code] / total;
     return counts[code];
@@ -222,10 +223,12 @@ int TypedStrEncoder::get_dep_idx(){
     return -1;
 }
 
-void TypedStrEncoder::update_wordform_frequencies(unordered_map<String, int> &freqdict){
-    for (auto &it : freqdict){
-        STRCODE code = hodor.code(it.first, enc::TOK);
-        freqs.update(code, it.second);
+//void TypedStrEncoder::update_wordform_frequencies(unordered_map<String, int> &freqdict){
+void TypedStrEncoder::update_wordform_frequencies(unordered_map<int, int> *freqdict){
+    for (auto &it : *freqdict){
+        //STRCODE code = hodor.code(it.first, enc::TOK);
+        //freqs.update(code, it.second);
+        freqs.update(it.first, it.second);
     }
 }
 
@@ -383,14 +386,23 @@ void SequenceEncoder::export_model(const string &outdir){
     //TODO
 }
 
-vector<int>* SequenceEncoder::operator()(int code){
-    //DBG("operator code = " << code)
+//vector<int>* SequenceEncoder::operator()(int code){
+//    //DBG("operator code = " << code)
+//    assert(code != enc::UNDEF && code != enc::UNKNOWN);
+//    if (code >= dictionary.size()){
+//        init();
+//    }
+//    assert(dictionary[code].size() > 0);
+//    return &dictionary[code];
+//}
+
+void SequenceEncoder::operator()(int code, vector<int> &sequence){
     assert(code != enc::UNDEF && code != enc::UNKNOWN);
     if (code >= dictionary.size()){
         init();
     }
     assert(dictionary[code].size() > 0);
-    return &dictionary[code];
+    sequence = dictionary[code];
 }
 
 int SequenceEncoder::char_voc_size(){

@@ -88,7 +88,7 @@ namespace enc{
         int find_type_id(string & type, bool add);
         void update_header_map();
         int get_dep_idx();
-        void update_wordform_frequencies(unordered_map<String, int> &freqdict);
+        void update_wordform_frequencies(unordered_map<int, int> *freqdict);
         double get_freq(STRCODE code);
         string get_header(int i);
 
@@ -138,7 +138,8 @@ struct SequenceEncoder{
 
     void export_model(const string &outdir);
 
-    vector<int>* operator()(int code);
+    //vector<int>* operator()(int code);
+    void operator()(int code, vector<int> &sequence);
 
     int char_voc_size();
 };

@@ -328,6 +328,9 @@ int main(int argc, char *argv[]){
 
         output.update_bigrams(train);
 
+        train.update_vocsize_and_frequencies();
+        enc::hodor.update_wordform_frequencies(train.get_frequencies_dict());
+
         int voc_size = enc::hodor.size(enc::TOK);
         int longest = enc::hodor.longest_size(enc::TOK) + 1;
 

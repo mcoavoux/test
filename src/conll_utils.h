@@ -149,6 +149,8 @@ public:
 
     void subset(ConllTreebank &other, int n);
 
+    unordered_map<int, int>* get_frequencies_dict();
+
     friend ostream & operator<<(ostream &os, ConllTreebank &ct);
 };
 

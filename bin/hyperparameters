@@ -9,8 +9,8 @@ size hidden layers	32
 embedding sizes	 20 16 16
 cell type	2
 rnn depth	2
-rnn state size	100
+rnn state size	32
 number of token feature (rnn)	1
 char rnn	1
-char embedding size	50
-char based embedding size	100
+char embedding size	32
+char based embedding size	32
