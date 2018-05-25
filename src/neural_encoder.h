@@ -61,7 +61,7 @@ class CharBiRnnFeatureExtractor{
 
     vector<vector<Vec>> precomputed_embeddings;
 
-    const int CHAR_DROPOUT = 0.2;
+    static const int CHAR_DROPOUT = 0.2;
 
 public:
     CharBiRnnFeatureExtractor();
