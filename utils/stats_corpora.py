@@ -95,17 +95,26 @@ def get_corpus_filenames(datadir, lang_id):
         exit()
 
 def get_morph_vocabulary(corpus):
-    voc = {}
+    voc = defaultdict(int)
     for sentence in  corpus:
         for token in sentence:
             morph = token[MORPH]
-            voc.add(morph)
+            morph = tuple(sorted(morph.split("|")))
+            voc[morph] += 1
     return voc
+
+def get_attribute_sets(voc):
+    at_voc = defaultdict(int)
+    for key in voc:
+        if key != "_":
+            nkey = tuple([e.split("=")[0] for e in key])
+            at_voc[nkey] += voc[key]
+    return at_voc
+
 
 def main(args):
     
     pred_dirs = glob.glob("{}/*".format(args.expe))
-    
     for pred_dir in pred_dirs:
         lang = pred_dir.split("/")[-1].strip("/")
         print(lang)
@@ -113,7 +122,8 @@ def main(args):
         train, dev, _ = get_corpus_filenames(args.data, lang)
         
         pred_dev = glob.glob("{}/*/pred_dev".format(pred_dir))
-        assert(len(pred_dev) == 1)
+        if len(pred_dev) != 1:
+            continue
         pred_dev = pred_dev[0]
 
         train_corpus = read_conll(train)
@@ -125,10 +135,20 @@ def main(args):
         print("Lang:{}".format(lang))
         print("train vocsize\t{}".format(len(train_voc)))
         print("pred_dev vocsize\t{}".format(len(pred_dev_voc)))
-        print("predicted tags unknown in train")
-        for e in pred_dev_voc:
+        tokens = sum([len(s) for s in pred_dev_corpus])
+        unknown_morph_pred = sum([pred_dev_voc[e] for e in pred_dev_voc if e not in train_voc])
+        print("predicted tags unknown in train: {} out of {} tokens ({} %)".format(unknown_morph_pred, tokens, round(unknown_morph_pred / tokens * 100, 2)))
+        for e in sorted(pred_dev_voc, key=lambda x: pred_dev_voc[x], reverse=True):
             if e not in train_voc:
-                print(e)
+                print(pred_dev_voc[e], e)
+
+        t_at = get_attribute_sets(train_voc)
+        pd_at = get_attribute_sets(pred_dev_voc)
+        un_at = sum([pd_at[e] for e in pd_at if e not in t_at])
+        print("predicted attributes unknwon in train: {} out of {} tokens ({} %)".format(un_at, tokens, round(un_at / tokens * 100, 2)))
+        for e in sorted(pd_at, key = lambda x: pd_at[x], reverse = True):
+            if e not in t_at:
+                print(pd_at[e], e)
         print()
 
 if __name__ == "__main__":
