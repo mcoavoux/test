@@ -87,7 +87,7 @@ def main(args):
         
         if lang in sag_mart_results:
             sg = sag_mart_results[lang]
-            diff_sg = lres[1] - sg
+            diff_sg = round(lres[1] - sg, 2)
         else:
             sg = "-"
             diff_sg = "-"
