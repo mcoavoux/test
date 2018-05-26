@@ -85,7 +85,10 @@ def main(args):
         lres = results[lang]
         bl = bilty_results[lang]
         
-        sg = sag_mart_results[lang]
+        if lang in sag_mart_results
+            sg = sag_mart_results[lang]
+        else:
+            sg = "-"
         
         diff = lres[1] - max([i for i in bl if type(i) == float])
         diff = round(diff, 2)
@@ -100,7 +103,9 @@ def main(args):
         #avg[4]+= bl[1]
         avg[5]+= diff
         avg[6]+= diff_supervised
-        avg[7]+= sg
+        
+        if type(sg) == float:
+            avg[7]+= sg
         
         print("\t".join(map(str, l)))
     
