@@ -85,7 +85,7 @@ def main(args):
         lres = results[lang]
         bl = bilty_results[lang]
         
-        if lang in sag_mart_results
+        if lang in sag_mart_results:
             sg = sag_mart_results[lang]
         else:
             sg = "-"
