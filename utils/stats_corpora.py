@@ -140,7 +140,6 @@ if __name__ == "__main__":
     
     parser.add_argument("data", type=str, help="dataset")
     parser.add_argument("expe", type=str, help="experiment dir")
-    parser.add_argument("languages", type=str, help="Language list")
 
     args = parser.parse_args()
     
