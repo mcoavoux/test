@@ -59,28 +59,40 @@ def get_bilty_results():
             res[sline[0]] = [n1, n2]
     return res
 
+def get_sag_mart_results():
+    instream = open("results_sag_mart_2017")
+    res = {}
+    for line in instream:
+        lang, score = line.strip().split()
+        score = float(score)
+        res[lang] = score
+    return res
+
 def main(args):
     
     results = get_results(args.expedir)
     
     bilty_results = get_bilty_results()
+    sag_mart_results = get_sag_mart_results()
     
-    header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta-best", "delta-supervised", "model", "epoch"]
+    header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta-best", "delta-supervised", "sag&mart", "model", "epoch"]
     
     print("\t".join(header))
     
-    avg = ["Avg", 0, 0, 0, 0, 0, 0]
+    avg = ["Avg", 0, 0, 0, 0, 0, 0, 0]
     for lang in sorted(results):
         
         lres = results[lang]
         bl = bilty_results[lang]
+        
+        sg = sag_mart_results[lang]
         
         diff = lres[1] - max([i for i in bl if type(i) == float])
         diff = round(diff, 2)
         
         diff_supervised = round(lres[1] - bl[0], 2)
         
-        l = [lang] +  lres[:2] + bl + [diff, diff_supervised] + lres[-2:]
+        l = [lang] +  lres[:2] + bl + [diff, diff_supervised] + [sg] + lres[-2:]
         
         avg[1]+= lres[0]
         avg[2]+= lres[1]
@@ -88,6 +100,7 @@ def main(args):
         #avg[4]+= bl[1]
         avg[5]+= diff
         avg[6]+= diff_supervised
+        avg[7]+= sg
         
         print("\t".join(map(str, l)))
     
