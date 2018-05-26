@@ -75,11 +75,11 @@ def main(args):
     bilty_results = get_bilty_results()
     sag_mart_results = get_sag_mart_results()
     
-    header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta-best", "delta-supervised", "sag&mart", "model", "epoch"]
+    header = ["lang", "dev", "test", "bilty", "bilty+polyglot", "delta-best", "delta-supervised", "sag&mart", "delta-sg", "model", "epoch"]
     
     print("\t".join(header))
     
-    avg = ["Avg", 0, 0, 0, 0, 0, 0, 0]
+    avg = ["Avg", 0, 0, 0, 0, 0, 0, 0, 0, 0]
     for lang in sorted(results):
         
         lres = results[lang]
@@ -87,15 +87,17 @@ def main(args):
         
         if lang in sag_mart_results:
             sg = sag_mart_results[lang]
+            diff_sg = lres[1] - sg
         else:
             sg = "-"
+            diff_sg = "-"
         
         diff = lres[1] - max([i for i in bl if type(i) == float])
         diff = round(diff, 2)
         
         diff_supervised = round(lres[1] - bl[0], 2)
         
-        l = [lang] +  lres[:2] + bl + [diff, diff_supervised] + [sg] + lres[-2:]
+        l = [lang] +  lres[:2] + bl + [diff, diff_supervised] + [sg, diff_sg] + lres[-2:]
         
         avg[1]+= lres[0]
         avg[2]+= lres[1]
