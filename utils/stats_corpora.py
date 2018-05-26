@@ -1,4 +1,5 @@
 from collections import defaultdict
+import glob
 
 ID,FORM,LEMMA,CPOS,FPOS,MORPH,HEAD,DEPREL,PHEAD,PDEPREL=range(10)
 
