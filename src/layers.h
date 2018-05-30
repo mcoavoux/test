@@ -210,6 +210,32 @@ struct Mixture : public Layer{ // y = (1 - x1) * x2 + x1 * x3
     virtual void bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient);
 };
 
+struct Minus : public Layer{
+    void fprop(const vector<Vec*> &data, Vec& output);
+    void bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient);
+};
+
+struct Mean : public Layer{
+    void fprop(const vector<Vec*> &data, Vec& output);
+    void bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient);
+};
+
+struct Div : public Layer{
+    void fprop(const vector<Vec*> &data, Vec& output);
+    void bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient);
+};
+
+struct Sqrt: public Layer{
+    void fprop(const vector<Vec*> &data, Vec& output);
+    void bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient);
+};
+
+struct Square: public Layer{
+    void fprop(const vector<Vec*> &data, Vec& output);
+    void bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient);
+};
+
+
 // Activation
 struct Tanh : public Layer{
     void fprop(const vector<Vec*> &data, Vec& output);
@@ -519,5 +545,39 @@ struct LstmNode : public ComplexNode, public AbstractMemoryNode{ // See Goldberg
 };
 
 
+struct LayerNormNode : public SimpleNode{
+//    virtual ~AbstractNeuralNode();
+//    virtual void fprop() = 0;   // forward propagation
+//    virtual void bprop() = 0;   // backward propagation
+//    virtual Vec* v()=0;         // get pointer to state
+//    virtual Vec* d()=0;         // get pointer to state derivative
+//  Inherited:
+//    Vec state;
+//    Vec dstate;
+//    Vec* v();
+//    Vec* d();
+//    Layer *layer;
+//    shared_ptr<AbstractNeuralNode> input;
+
+    //    m(x)   x - m(x)
+    enum {MEAN, CENTERED, CENTERED_SQUARED, VARIANCE, STD_DEV, OUT};
+
+    vector<Layer*> layers;
+
+    shared_ptr<SimpleNode> m;
+    shared_ptr<ComplexNode> c;
+    shared_ptr<SimpleNode> c2;
+    shared_ptr<SimpleNode> var;
+    shared_ptr<SimpleNode> std_dev;
+
+    vector<shared_ptr<AbstractNeuralNode>> internal_nodes;
+
+public:
+    LayerNormNode(int size, const shared_ptr<AbstractNeuralNode> &input);
+    ~LayerNormNode();
+
+    void fprop();
+    void bprop();
+};
 
 #endif // LAYERS_H

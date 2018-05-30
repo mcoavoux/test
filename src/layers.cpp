@@ -379,8 +379,8 @@ void Mult::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_de
 
 
 void Add::fprop(const vector<Vec*> &data, Vec& output){
-    output = *(data[0]);
-    for (int i = 1; i < data.size(); i++){
+    output = *(data[0]) + *(data[1]);
+    for (int i = 2; i < data.size(); i++){
         output += *(data[i]);
     }
 }
@@ -401,6 +401,61 @@ void Mixture::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out
     *(gradient[2]) += data[0]->cwiseProduct(out_derivative);
 }
 
+void Minus::fprop(const vector<Vec*> &data, Vec& output){
+    assert(data.size() == 2);
+    output = *(data[0]) - *(data[1]);
+}
+
+void Minus::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient){
+    assert(gradient.size());
+    *(gradient[0]) += out_derivative;
+    *(gradient[1]) -= out_derivative;
+}
+
+
+void Mean::fprop(const vector<Vec*> &data, Vec& output){
+    assert(data.size() == 1);
+    double mean = data[0]->mean();
+    output = Vec::Zero(data[0]->size()).array() + mean;
+}
+
+void Mean::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient){
+    assert(gradient.size());
+    *(gradient[0]) += out_derivative / (double)(data[0]->size());
+}
+
+void Div::fprop(const vector<Vec*> &data, Vec& output){
+    assert(data.size() == 2);
+    data[1]->array() += 1e-8;
+    output = data[0]->cwiseQuotient(*data[1]);
+}
+
+void Div::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient){
+    assert(gradient.size() == 2);
+    *(gradient[0]) += out_derivative.cwiseQuotient(*data[1]);
+    *(gradient[1]) -= out_derivative.cwiseProduct(*data[0]).cwiseQuotient(data[1]->cwiseProduct(*data[1]));
+}
+
+
+void Sqrt::fprop(const vector<Vec*> &data, Vec& output){
+    assert(data.size() == 1);
+    output = data[0]->cwiseSqrt();
+}
+
+void Sqrt::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient){
+    assert(gradient.size() == 1);
+    *(gradient[0]) += out_derivative.cwiseQuotient(2 * output);
+}
+
+void Square::fprop(const vector<Vec*> &data, Vec& output){
+    assert(data.size() == 1);
+    output = data[0]->cwiseProduct(*data[0]);
+}
+
+void Square::bprop(const vector<Vec*> &data, const Vec& output, const Vec & out_derivative, vector<Vec*> &gradient){
+    assert(gradient.size() == 1);
+    *(gradient[0]) += out_derivative.cwiseProduct(2 * *data[0]);
+}
 
 
 
@@ -906,16 +961,16 @@ LstmNode::LstmNode(int size,
     vector<shared_ptr<AbstractNeuralNode>> in(input);
     in.push_back(predecessor);
 
-    ia = shared_ptr<ComplexNode>(new ComplexNode(size, layers[I], in));
+    ia = shared_ptr<ComplexNode>(new ComplexNode(size, layers[I], in)); // Layer norm ->
     ih = shared_ptr<SimpleNode>(new SimpleNode(size, layers[IS], ia));
 
-    fa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[F], in));
+    fa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[F], in)); // Layer norm ->
     fh = shared_ptr<SimpleNode>(new SimpleNode(size, layers[FS], fa));
 
-    oa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[O], in));
+    oa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[O], in)); // Layer norm ->
     oh = shared_ptr<SimpleNode>(new SimpleNode(size, layers[OS], oa));
 
-    ga = shared_ptr<ComplexNode>(new ComplexNode(size, layers[G], in));
+    ga = shared_ptr<ComplexNode>(new ComplexNode(size, layers[G], in)); // layer norm ->
     gh = shared_ptr<SimpleNode>(new SimpleNode(size, layers[GT], ga));
 
     shared_ptr<AbstractNeuralNode> memory_node;
@@ -928,7 +983,7 @@ LstmNode::LstmNode(int size,
     in = {cf_mult, gi_mult};
     c = shared_ptr<ComplexNode>(new ComplexNode(size, layers[C], in));
     in = {c};
-    ch = shared_ptr<SimpleNode>(new SimpleNode(size, layers[CT], c));
+    ch = shared_ptr<SimpleNode>(new SimpleNode(size, layers[CT], c)); // layer norm to c ->
 
     internal_nodes = {ia, ih, fa, fh, oa, oh, ga, gh, cf_mult, gi_mult, c, ch};
 
@@ -960,8 +1015,82 @@ void LstmNode::get_memory_node(shared_ptr<AbstractNeuralNode> &hnode){
 }
 
 
+/////////////////////////////////////////////////////
+
+////////////////// LAYER NORMALIZATION
+
+/////////////////////////////////////////////////////
+
+LayerNormNode::LayerNormNode(int size, const shared_ptr<AbstractNeuralNode> &input)
+    : SimpleNode(size, nullptr, input){
+
+    layers.push_back(new Mean());
+    layers.push_back(new Minus());
+    layers.push_back(new Square());
+    layers.push_back(new Mean());
+    layers.push_back(new Sqrt());
+    layers.push_back(new Div());
+
+    m = shared_ptr<SimpleNode>(new SimpleNode(size, layers[MEAN], input));
+    vector<shared_ptr<AbstractNeuralNode>> c_i{input, m};
+
+    c = shared_ptr<ComplexNode>(new ComplexNode(size, layers[CENTERED], c_i));
+    c2 = shared_ptr<SimpleNode>(new SimpleNode(size, layers[CENTERED_SQUARED], c));
+    var = shared_ptr<SimpleNode>(new SimpleNode(size, layers[VARIANCE], c2));;
+    std_dev = shared_ptr<SimpleNode>(new SimpleNode(size, layers[STD_DEV], var));
+
+    internal_nodes = vector<shared_ptr<AbstractNeuralNode>>{m, c, c2, var, std_dev};
+}
+LayerNormNode::~LayerNormNode(){
+    for (int i = 0; i < layers.size(); i++){
+        delete layers[i];
+        layers[i] = nullptr;
+    }
+}
+
+void LayerNormNode::fprop(){
+    for (int i = 0; i < internal_nodes.size(); i++){
+        internal_nodes[i]->fprop();
+    }
+    vector<Vec*> data{c->v(), std_dev->v()};
+    layers.back()->fprop(data, state);
+}
+
+void LayerNormNode::bprop(){
+    vector<Vec*> data{c->v(), std_dev->v()};
+    vector<Vec*> data_grad{c->d(), std_dev->d()};
+    layers.back()->bprop(data, state, dstate, data_grad);
+
+    for (int i = internal_nodes.size()-1; i >= 0; i--){
+        internal_nodes[i]->bprop();
+    }
+}
 
 
+//    virtual ~AbstractNeuralNode();
+//    virtual void fprop() = 0;   // forward propagation
+//    virtual void bprop() = 0;   // backward propagation
+//    virtual Vec* v()=0;         // get pointer to state
+//    virtual Vec* d()=0;         // get pointer to state derivative
 
+//struct NeuralNode : public AbstractNeuralNode{
+//    Vec state;
+//    Vec dstate;
 
+//    virtual ~NeuralNode();
+//    NeuralNode(int size);
+
+//    Vec* v();
+//    Vec* d();
+//};
+
+//struct SimpleNode : public NeuralNode{
+//    Layer *layer;
+//    shared_ptr<AbstractNeuralNode> input;
+
+//    SimpleNode(int size, Layer *layer, const shared_ptr<AbstractNeuralNode> &input);
+
+//    void fprop();
+//    void bprop();
+//};
 
