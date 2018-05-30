@@ -414,6 +414,7 @@ void BiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer){
 void BiRnnFeatureExtractor::add_init_node(int depth){
     switch(params->rnn.cell_type){
     case RecurrentLayerWrapper::GRU:
+    case RecurrentLayerWrapper::LN_LSTM:
     case RecurrentLayerWrapper::LSTM:{
         shared_ptr<ParamNode> init11(new ParamNode(params->rnn.hidden_size, (*layers[depth])[GruNode::INIT2]));
         shared_ptr<AbstractNeuralNode> init1(new MemoryNodeInitial(
@@ -445,6 +446,8 @@ AbstractNeuralNode* BiRnnFeatureExtractor::get_recurrent_node(
         return new RnnNode(params->rnn.hidden_size, pred, input_nodes, l);
     case RecurrentLayerWrapper::LSTM:
         return new LstmNode(params->rnn.hidden_size, pred, input_nodes, l);
+    case RecurrentLayerWrapper::LN_LSTM:
+        return new LnLstmNode(params->rnn.hidden_size, pred, input_nodes, l);
     default:
         assert(false);
     }

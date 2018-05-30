@@ -402,7 +402,7 @@ struct ComplexNode : public NeuralNode{
  * rnn network internal computations.
  */
 struct RecurrentLayerWrapper{
-    enum {RNN, GRU, LSTM};
+    enum {RNN, GRU, LSTM, LN_LSTM};
     vector<Layer*> layers;
 
     RecurrentLayerWrapper(int cell_type, vector<int> &input_sizes, int hidden_size);
@@ -529,6 +529,7 @@ struct LstmNode : public ComplexNode, public AbstractMemoryNode{ // See Goldberg
 
     vector<shared_ptr<AbstractNeuralNode>> internal_nodes;
 
+    LstmNode(int size, vector<shared_ptr<AbstractNeuralNode>> &input);
     LstmNode(int size,
              shared_ptr<AbstractNeuralNode> &predecessor,
              vector<shared_ptr<AbstractNeuralNode>> &input,
@@ -542,6 +543,21 @@ struct LstmNode : public ComplexNode, public AbstractMemoryNode{ // See Goldberg
 
     void get_memory_node(shared_ptr<AbstractNeuralNode> &hnode);
 
+};
+
+struct LnLstmNode : public LstmNode{
+
+    shared_ptr<SimpleNode> ln_ia;
+    shared_ptr<SimpleNode> ln_fa;
+    shared_ptr<SimpleNode> ln_oa;
+    shared_ptr<SimpleNode> ln_ga;
+    shared_ptr<SimpleNode> ln_c;
+
+    LnLstmNode(int size,
+               shared_ptr<AbstractNeuralNode> &predecessor,
+               vector<shared_ptr<AbstractNeuralNode>> &input,
+               RecurrentLayerWrapper &layers);
+    ~LnLstmNode();
 };
 
 

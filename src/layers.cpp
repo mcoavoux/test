@@ -747,7 +747,8 @@ RecurrentLayerWrapper::RecurrentLayerWrapper(int cell_type, vector<int> &input_s
     switch (cell_type){
     case GRU: get_gru(input_sizes, hidden_size); break;
     case RNN: get_vanilla_rnn(input_sizes, hidden_size); break;
-    case LSTM: get_lstm(input_sizes, hidden_size); break;
+    case LSTM:
+    case LN_LSTM: get_lstm(input_sizes, hidden_size); break;
     default:
         assert(false && "Unknown recurrent cell type");
     }
@@ -940,18 +941,20 @@ void RnnNode::bprop(){
 
 
 
-
+LstmNode::LstmNode(int size, vector<shared_ptr<AbstractNeuralNode>> &input)
+    : ComplexNode(size, nullptr, input){
+    for (int i = 0; i < input.size(); i++){
+        assert(input[i].get() != NULL);
+    }
+}
 
 
 LstmNode::LstmNode(int size,
                    shared_ptr<AbstractNeuralNode> &predecessor,
                    vector<shared_ptr<AbstractNeuralNode>> &input,
                    RecurrentLayerWrapper &layers)
-                : ComplexNode(size,nullptr,input){
+                : LstmNode(size,input){
 
-    for (int i = 0; i < input.size(); i++){
-        assert(input[i].get() != NULL);
-    }
     assert(predecessor.get() != NULL);
 
     this->pred = std::static_pointer_cast<LstmNode>(predecessor);
@@ -961,16 +964,16 @@ LstmNode::LstmNode(int size,
     vector<shared_ptr<AbstractNeuralNode>> in(input);
     in.push_back(predecessor);
 
-    ia = shared_ptr<ComplexNode>(new ComplexNode(size, layers[I], in)); // Layer norm ->
+    ia = shared_ptr<ComplexNode>(new ComplexNode(size, layers[I], in));
     ih = shared_ptr<SimpleNode>(new SimpleNode(size, layers[IS], ia));
 
-    fa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[F], in)); // Layer norm ->
+    fa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[F], in));
     fh = shared_ptr<SimpleNode>(new SimpleNode(size, layers[FS], fa));
 
-    oa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[O], in)); // Layer norm ->
+    oa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[O], in));
     oh = shared_ptr<SimpleNode>(new SimpleNode(size, layers[OS], oa));
 
-    ga = shared_ptr<ComplexNode>(new ComplexNode(size, layers[G], in)); // layer norm ->
+    ga = shared_ptr<ComplexNode>(new ComplexNode(size, layers[G], in));
     gh = shared_ptr<SimpleNode>(new SimpleNode(size, layers[GT], ga));
 
     shared_ptr<AbstractNeuralNode> memory_node;
@@ -983,7 +986,7 @@ LstmNode::LstmNode(int size,
     in = {cf_mult, gi_mult};
     c = shared_ptr<ComplexNode>(new ComplexNode(size, layers[C], in));
     in = {c};
-    ch = shared_ptr<SimpleNode>(new SimpleNode(size, layers[CT], c)); // layer norm to c ->
+    ch = shared_ptr<SimpleNode>(new SimpleNode(size, layers[CT], c));
 
     internal_nodes = {ia, ih, fa, fh, oa, oh, ga, gh, cf_mult, gi_mult, c, ch};
 
@@ -1014,6 +1017,54 @@ void LstmNode::get_memory_node(shared_ptr<AbstractNeuralNode> &hnode){
     hnode = c;
 }
 
+
+
+LnLstmNode::LnLstmNode(int size,
+                       shared_ptr<AbstractNeuralNode> &predecessor,
+                       vector<shared_ptr<AbstractNeuralNode>> &input,
+                       RecurrentLayerWrapper &layers) : LstmNode(size, input){
+    assert(predecessor.get() != NULL);
+
+    this->pred = std::static_pointer_cast<LstmNode>(predecessor);
+
+    layer = layers[H];
+
+    vector<shared_ptr<AbstractNeuralNode>> in(input);
+    in.push_back(predecessor);
+
+    ia = shared_ptr<ComplexNode>(new ComplexNode(size, layers[I], in)); // Layer norm ->
+    ln_ia = shared_ptr<LayerNormNode>(new LayerNormNode(size, ia));
+    ih = shared_ptr<SimpleNode>(new SimpleNode(size, layers[IS], ln_ia));
+
+    fa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[F], in)); // Layer norm ->
+    ln_fa = shared_ptr<LayerNormNode>(new LayerNormNode(size, fa));
+    fh = shared_ptr<SimpleNode>(new SimpleNode(size, layers[FS], ln_fa));
+
+    oa = shared_ptr<ComplexNode>(new ComplexNode(size, layers[O], in)); // Layer norm ->
+    ln_oa = shared_ptr<LayerNormNode>(new LayerNormNode(size, oa));
+    oh = shared_ptr<SimpleNode>(new SimpleNode(size, layers[OS], ln_oa));
+
+    ga = shared_ptr<ComplexNode>(new ComplexNode(size, layers[G], in)); // layer norm ->
+    ln_ga = shared_ptr<LayerNormNode>(new LayerNormNode(size, ga));
+    gh = shared_ptr<SimpleNode>(new SimpleNode(size, layers[GT], ln_ga));
+
+    shared_ptr<AbstractNeuralNode> memory_node;
+    pred->get_memory_node(memory_node);
+
+    in = {memory_node, fh};
+    cf_mult = shared_ptr<ComplexNode>(new ComplexNode(size, layers[CF], in));
+    in = {gh, ih};
+    gi_mult = shared_ptr<ComplexNode>(new ComplexNode(size, layers[GI], in));
+    in = {cf_mult, gi_mult};
+    c = shared_ptr<ComplexNode>(new ComplexNode(size, layers[C], in));
+
+    ln_c = shared_ptr<LayerNormNode>(new LayerNormNode(size, c));
+    ch = shared_ptr<SimpleNode>(new SimpleNode(size, layers[CT], ln_c)); // layer norm to c ->
+
+    internal_nodes = {ia, ln_ia, ih, fa, ln_fa, fh, oa, ln_oa, oh, ga, ln_ga, gh, cf_mult, gi_mult, c, ln_c, ch};
+}
+
+LnLstmNode::~LnLstmNode(){}
 
 /////////////////////////////////////////////////////
 

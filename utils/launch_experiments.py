@@ -14,7 +14,7 @@ gaussian noise eta	{ge}
 hidden layers	{hl}
 size hidden layers	{hs}
 embedding sizes	 {w} 16 16
-cell type	2
+cell type	3
 rnn depth	{depth}
 rnn state size	{W}
 number of token feature (rnn)	1
