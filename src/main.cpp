@@ -146,7 +146,7 @@ struct EpochSummary{
                                  dev(dev){}
 
     void print(ostream &os){
-        os << "\rEpoch " << epoch
+        os << "Epoch " << epoch
            << " train " << train
            << " dev " << dev << endl;
     }
@@ -380,6 +380,7 @@ int main(int argc, char *argv[]){
             evaluate(avg_t, output, dev, eval_dev);
             EpochSummary sum(epoch, eval_train, eval_dev);
 
+            cerr << "\r";
             sum.print(cout);
 
             sum.log(log_file);

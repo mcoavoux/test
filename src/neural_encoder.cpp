@@ -9,7 +9,7 @@ CharBiRnnFeatureExtractor::CharBiRnnFeatureExtractor(CharRnnParameters *nn_param
     encoder = SequenceEncoder(nn_parameters->crnn);
     vector<int> input_sizes{params->dim_char};
 
-    int cell_type = RecurrentLayerWrapper::LSTM;
+    int cell_type = RecurrentLayerWrapper::LN_LSTM;
     int hidden_size = params->dim_char_based_embeddings;
 
     // 2 layers only
