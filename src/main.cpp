@@ -353,10 +353,13 @@ int main(int argc, char *argv[]){
         ofstream log_file(options.output_dir + "/logger");
 
 
-        float training_accuracy = 0.0;
+        //float training_accuracy = 0.0;
 
         float best_dev_acc = 0.0;
-        for (int epoch = 0; epoch < options.epochs || training_accuracy <= 99.6; epoch ++){
+        float best_dev_loss = 1e20;
+        int n_examples = 0;
+        //for (int epoch = 0; epoch < options.epochs || training_accuracy <= 99.6; epoch ++){
+        for (int epoch = 0; epoch < options.epochs || n_examples < 4000000; epoch ++){
 
             train.shuffle();
 
@@ -366,6 +369,8 @@ int main(int argc, char *argv[]){
                 train[i]->to_training_example(X, Y, output);
                 tagger.train_one(X, Y);
                 cerr << "\r" << std::setprecision(4) << (i*100.0 / train.size()) << "%";
+
+                n_examples += train[i]->size();
             }
 
             shared_ptr<BiLstmTagger> avg_t(tagger.copy());
@@ -374,7 +379,7 @@ int main(int argc, char *argv[]){
             EpochEval eval_train(output);
             evaluate(avg_t, output, train_sample, eval_train);
 
-            training_accuracy = eval_train.get_acc(0);
+            //training_accuracy = eval_train.get_acc(0);
 
             EpochEval eval_dev(output);
             evaluate(avg_t, output, dev, eval_dev);
@@ -386,11 +391,13 @@ int main(int argc, char *argv[]){
             sum.log(log_file);
 
             float dev_acc = eval_dev.get_acc(0);
+            float dev_loss = eval_dev.get_loss(0);
 //            models.push_back(avg_t);
 //            dev_accuracies.push_back(dev_acc);
 
-            if (dev_acc >= best_dev_acc){
+            if (dev_acc > best_dev_acc || (dev_acc == best_dev_acc && dev_loss < best_dev_loss)){
                 best_dev_acc = dev_acc;
+                best_dev_loss = dev_loss;
                 output.export_model(options.output_dir);
                 avg_t->export_model(options.output_dir);
                 ofstream outfile(options.output_dir + "/best_epoch");
