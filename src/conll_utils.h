@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
-
+#include <algorithm>
 
 #include "utils.h"
 #include "random_utils.h"

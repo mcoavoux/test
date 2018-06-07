@@ -253,6 +253,7 @@ void ConllToken::print_morphology(ostream &os){
             attributes.push_back(s);
         }
     }
+    std::sort(attributes.begin(), attributes.end());
     os << attributes[0];
     for (int i = 1; i < attributes.size(); i++){
         os << "|" << attributes[i];
