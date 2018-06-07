@@ -38,6 +38,7 @@ def get_results(expedir):
                 dev, test, epoch = acc
                 
                 if dev > best:
+                    best = dev
                     result[lang] = [dev, test, model, epoch]
 
     return result

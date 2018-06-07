@@ -349,20 +349,21 @@ void BiRnnFeatureExtractor::build_computation_graph(vector<STRCODE> &buffer){
             input[i][1] = char_based_embeddings[1];
         }
 
-        shared_ptr<VecParam> e;
-        //for (int f = 0; f < params->rnn.features; f++){
-        STRCODE word_code = buffer[i];
-        if (train_time && word_code != enc::UNDEF){ // 2% unknown words   --> won't work unless prob depends on frequency
-            assert(word_code != enc::UNKNOWN);
-            double threshold = 0.8375 / (0.8375 + enc::hodor.get_freq(word_code));
-            if (rd::random() < threshold){
-                word_code = enc::UNKNOWN;
+        if (params->rnn.features > 0){
+            shared_ptr<VecParam> e;
+            //for (int f = 0; f < params->rnn.features; f++){
+            STRCODE word_code = buffer[i];
+            if (train_time && word_code != enc::UNDEF){ // 2% unknown words   --> won't work unless prob depends on frequency
+                assert(word_code != enc::UNKNOWN);
+                double threshold = 0.8375 / (0.8375 + enc::hodor.get_freq(word_code));
+                if (rd::random() < threshold){
+                    word_code = enc::UNKNOWN;
+                }
             }
-        }
 
-        lu->get(word_code, e);
-        input[i][add_features] = shared_ptr<AbstractNeuralNode>(new LookupNode(*e));
-        //}
+            lu->get(word_code, e);
+            input[i][add_features] = shared_ptr<AbstractNeuralNode>(new LookupNode(*e));
+        }
     }
 
     int depth = params->rnn.depth;
