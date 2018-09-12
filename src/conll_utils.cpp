@@ -290,11 +290,15 @@ int ConllToken::len_form(){
 }
 
 ostream & operator<<(ostream &os, ConllToken &ct){
+    string fpos("_");
+    if (ct._fpos != enc::UNKNOWN){
+        fpos = enc::hodor.decode_to_str(ct._fpos, enc::XPOS);
+    }
     os << ct.i() << "\t"
        << str::encode(ct._form) << "\t"
        << "_" << "\t"
        << enc::hodor.decode_to_str(ct._cpos, enc::UPOS) << "\t"
-       << enc::hodor.decode_to_str(ct._fpos, enc::XPOS) << "\t";
+       << fpos << "\t";
     ct.print_morphology(os);
     os << "_" << "\t"  // head
        << "_" << "\t"  // rel
@@ -408,6 +412,21 @@ ostream & operator<<(ostream &os, ConllTree &ct){
     }
     return os;
 }
+
+
+void str_to_conlltokens(vector<String> &tokens, vector<ConllToken> &ctokens){
+    ctokens.clear();
+    vector<int> morph;
+    for (int i = 0; i < tokens.size(); i++){
+        ConllToken tok(i+1,
+                       tokens[i],
+                       enc::hodor.code(tokens[i], enc::TOK),
+                       0, 0, morph);
+        //String _form, int _iform, int _cpos, int _fpos, vector<int> morpho)
+        ctokens.push_back(tok);
+    }
+}
+
 
 ConllTreebank::ConllTreebank(){}
 void ConllTreebank::add_tree(ConllTree &tree){

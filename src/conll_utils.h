@@ -133,6 +133,8 @@ public:
     friend ostream & operator<<(ostream &os, ConllTree &ct);
 };
 
+void str_to_conlltokens(vector<String> &tokens, vector<ConllToken> &ctokens);
+
 class ConllTreebank{
     vector<ConllTree> trees;
     //vector<int> voc_sizes;

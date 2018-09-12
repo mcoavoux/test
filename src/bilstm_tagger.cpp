@@ -246,6 +246,7 @@ void BiLstmTagger::import_model(string &output_dir){
     for (int i = 0; i < parameters.size(); i++){
         parameters[i]->load(output_dir+"/parameters" + std::to_string(i));
     }
+    rnn.precompute_char_lstm();
 }
 
 void BiLstmTagger::add_expert_classifier(){
