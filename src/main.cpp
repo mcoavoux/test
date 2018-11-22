@@ -269,7 +269,7 @@ int main(int argc, char *argv[]){
     srand(rd::Random::SEED);
 
     Options options;
-    Output output("m");
+    Output output("");
 
     while(true){
         static struct option long_options[] ={
@@ -446,17 +446,51 @@ int main(int argc, char *argv[]){
         BiLstmTagger tagger(voc_size, output.n_labels, options.params);
         tagger.import_model(options.output_dir);
 
-        ConllTreebank test;
-        read_conll_corpus(options.test_file, test, false);
+        if (optind < argc){
+            for (int file_i = optind; file_i < argc; file_i ++){
+                string filename(argv[file_i]);
+                cerr << "Parsing filename: " << filename << endl;
 
-        for (int i = 0; i < test.size(); i++){
-            vector<STRCODE> X;
-            vector<vector<int>> gold;
-            vector<vector<int>> pred;
-            test[i]->to_training_example(X, gold, output);
-            tagger.predict_one(X, pred);
-            test[i]->assign_tags(pred, output);
+
+                ifstream input_file(filename);
+                string bline;
+                String line;
+
+                while(std::getline(input_file, bline)){
+
+                    vector<String> tokens;
+                    line = str::decode(bline);
+                    str::split(line, " ", "", tokens);
+
+
+                    vector<ConllToken> ctokens;
+                    str_to_conlltokens(tokens, ctokens);
+                    ConllTree tree(ctokens);
+
+                    vector<STRCODE> X;
+                    vector<vector<int>> gold;
+                    vector<vector<int>> pred;
+                    tree.to_training_example(X, gold, output);
+                    tagger.predict_one(X, pred);
+                    tree.assign_tags(pred, output);
+                    cout << tree << endl;
+                }
+            }
         }
-        cout << test;
+
+        if (! options.test_file.empty()){
+            ConllTreebank test;
+            read_conll_corpus(options.test_file, test, false);
+
+            for (int i = 0; i < test.size(); i++){
+                vector<STRCODE> X;
+                vector<vector<int>> gold;
+                vector<vector<int>> pred;
+                test[i]->to_training_example(X, gold, output);
+                tagger.predict_one(X, pred);
+                test[i]->assign_tags(pred, output);
+            }
+            cout << test;
+        }
     }
 }
